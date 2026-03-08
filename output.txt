@@ -1,0 +1,20 @@
+=== Mytholang Compiler: Token Stream ===
+TOKEN TYPE                          | ACTUAL CODE
+--------------------------------------------------
+KEYWORD: zeus
+KEYWORD: apollo
+IF STATEMENT
+ELSE STATEMENT
+IDENTIFIER: score
+ASSIGNMENT
+NUMBER: 100
+IDENTIFIER: player_name
+ASSIGNMENT
+UNKNOWN TOKEN: "
+IDENTIFIER: Achilles
+UNKNOWN TOKEN: "
+IDENTIFIER: level
+ASSIGNMENT
+NUMBER: 5
+IDENTIFIER: unknown_token
+UNKNOWN TOKEN: $
