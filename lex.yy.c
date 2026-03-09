@@ -1,5 +1,5 @@
 
-#line 3 "lex.yy.c"
+#line 2 "lex.yy.c"
 
 #define  YY_INT_ALIGNED short int
 
@@ -636,8 +636,8 @@ char *yytext;
 
 extern YYSTYPE yylval;
 FILE *yyin;
+#line 639 "lex.yy.c"
 #line 640 "lex.yy.c"
-#line 641 "lex.yy.c"
 
 #define INITIAL 0
 
@@ -857,7 +857,7 @@ YY_DECL
 #line 18 "mytho.l"
 
 
-#line 861 "lex.yy.c"
+#line 860 "lex.yy.c"
 
 	while ( /*CONSTCOND*/1 )		/* loops until end-of-file is reached */
 		{
@@ -1288,7 +1288,7 @@ YY_RULE_SETUP
 #line 112 "mytho.l"
 ECHO;
 	YY_BREAK
-#line 1292 "lex.yy.c"
+#line 1291 "lex.yy.c"
 case YY_STATE_EOF(INITIAL):
 	yyterminate();
 
@@ -2306,5 +2306,4 @@ void yyfree (void * ptr )
 #define YYTABLES_NAME "yytables"
 
 #line 112 "mytho.l"
-
 
