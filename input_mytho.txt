@@ -1,8 +1,6 @@
-zeus
-apollo
-omen
-destiny
-score := 100
-player_name := "Achilles"
-level := 5
-unknown_token $
+Prometheus() {
+    zeus eggs .
+    zeus milk := 5 .
+    eggs := 3 add 2 .
+    proclaim(eggs) .
+}
