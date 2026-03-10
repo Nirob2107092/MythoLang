@@ -1,3 +1,4 @@
 Prometheus() {
-    a := 5 .
+    zeus a .
+    a := 3.5 .
 }

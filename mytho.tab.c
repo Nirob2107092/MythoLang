@@ -72,16 +72,21 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "mytho_shared.h"
+
 #define MAX_SYMBOLS 100
+
+
 
 typedef struct {
     char name[50];
-    char type[20];
-    int value;
+    DataType type;
+    Value val;
 } Symbol;
 
 Symbol symbolTable[MAX_SYMBOLS];
 int symbolCount = 0;
+
 int yylex(void);
 void yyerror(const char *s);
 
@@ -89,12 +94,19 @@ extern int yylineno;
 extern FILE *yyin;
 FILE *outputFile;
 
-void insertSymbol(char *name, char *type);
-void updateSymbol(char *name, int value);
-int getSymbolValue(char *name);
+/* function prototypes */
+void insertSymbol(char *name, DataType type);
 int lookupSymbol(char *name);
+void updateSymbol(char *name, ExprValue expr);
+ExprValue getSymbolValue(char *name);
+int isAssignable(DataType target, DataType source);
+ExprValue evaluateArithmetic(ExprValue a, ExprValue b, int op);
+const char* typeToString(DataType t);
+ExprValue evaluateRelational(ExprValue a, ExprValue b, int op);
+ExprValue evaluateLogical(ExprValue a, ExprValue b, int op);
+ExprValue evaluateNot(ExprValue a);
 
-#line 98 "mytho.tab.c"
+#line 110 "mytho.tab.c"
 
 # ifndef YY_CAST
 #  ifdef __cplusplus
@@ -529,16 +541,16 @@ union yyalloc
 /* YYFINAL -- State number of the termination state.  */
 #define YYFINAL  5
 /* YYLAST -- Last index in YYTABLE.  */
-#define YYLAST   65
+#define YYLAST   144
 
 /* YYNTOKENS -- Number of terminals.  */
 #define YYNTOKENS  70
 /* YYNNTS -- Number of nonterminals.  */
 #define YYNNTS  10
 /* YYNRULES -- Number of rules.  */
-#define YYNRULES  26
+#define YYNRULES  38
 /* YYNSTATES -- Number of states.  */
-#define YYNSTATES  49
+#define YYNSTATES  70
 
 /* YYMAXUTOK -- Last valid token kind.  */
 #define YYMAXUTOK   324
@@ -594,9 +606,10 @@ static const yytype_int8 yytranslate[] =
 /* YYRLINE[YYN] -- Source line where rule number YYN was defined.  */
 static const yytype_uint8 yyrline[] =
 {
-       0,    65,    65,    72,    76,    77,    81,    82,    83,    87,
-      92,   100,   107,   114,   115,   116,   117,   118,   119,   123,
-     124,   125,   126,   134,   135,   136,   137
+       0,    82,    82,    89,    93,    94,    98,    99,   100,   104,
+     108,   116,   123,   139,   140,   141,   142,   143,   144,   148,
+     149,   150,   151,   153,   163,   164,   165,   166,   167,   168,
+     171,   172,   173,   175,   177,   181,   185,   189,   193
 };
 #endif
 
@@ -635,7 +648,7 @@ yysymbol_name (yysymbol_kind_t yysymbol)
 }
 #endif
 
-#define YYPACT_NINF (-41)
+#define YYPACT_NINF (-46)
 
 #define yypact_value_is_default(Yyn) \
   ((Yyn) == YYPACT_NINF)
@@ -649,11 +662,13 @@ yysymbol_name (yysymbol_kind_t yysymbol)
    STATE-NUM.  */
 static const yytype_int8 yypact[] =
 {
-       0,   -31,    26,   -41,   -23,   -41,   -21,   -41,    -3,   -41,
-     -41,   -41,   -41,   -41,   -41,   -20,   -41,    12,   -41,   -14,
-     -13,   -11,   -29,   -40,   -40,   -41,   -41,   -41,    22,   -40,
-     -41,   -41,   -22,    13,   -40,   -17,   -40,   -40,   -40,   -40,
-     -40,   -41,    13,   -41,   -12,   -12,   -41,   -41,   -41
+      -8,   -40,    17,   -46,   -39,   -46,   -38,   -46,    -3,   -46,
+     -46,   -46,   -46,   -46,   -46,   -37,   -46,    -4,   -46,   -36,
+     -35,   -32,   -45,   -29,   -29,   -46,   -46,   -46,     3,   -29,
+     -29,   -46,   -46,   -46,   -46,   -46,    29,    69,   -29,   101,
+      49,   -29,   -29,   -29,   -29,   -29,   -29,   -29,   -29,   -29,
+     -29,   -29,   -29,   -29,   -46,    69,   -46,   -18,   -18,   -46,
+     -46,   -46,   101,    85,   -21,   -21,   -21,   -21,   -21,   -21
 };
 
 /* YYDEFACT[STATE-NUM] -- Default reduction number in state STATE-NUM.
@@ -664,20 +679,22 @@ static const yytype_int8 yydefact[] =
        0,     0,     0,     2,     0,     1,     0,     5,     0,    13,
       14,    15,    16,    17,    18,     0,     3,     0,     4,     0,
        0,     0,     0,     0,     0,     6,     7,     8,     9,     0,
-      25,    26,     0,    11,     0,     0,     0,     0,     0,     0,
-       0,    12,    10,    24,    19,    20,    21,    22,    23
+       0,    34,    37,    35,    36,    38,     0,    11,     0,    32,
+       0,     0,     0,     0,     0,     0,     0,     0,     0,     0,
+       0,     0,     0,     0,    12,    10,    33,    19,    20,    21,
+      22,    23,    30,    31,    24,    25,    26,    27,    28,    29
 };
 
 /* YYPGOTO[NTERM-NUM].  */
 static const yytype_int8 yypgoto[] =
 {
-     -41,   -41,   -41,   -41,   -41,   -41,   -41,   -41,   -41,    -7
+     -46,   -46,   -46,   -46,   -46,   -46,   -46,   -46,   -46,     2
 };
 
 /* YYDEFGOTO[NTERM-NUM].  */
 static const yytype_int8 yydefgoto[] =
 {
-       0,     2,     3,     8,    18,    19,    20,    21,    22,    32
+       0,     2,     3,     8,    18,    19,    20,    21,    22,    36
 };
 
 /* YYTABLE[YYPACT[STATE-NUM]] -- What to do in state STATE-NUM.  If
@@ -685,24 +702,40 @@ static const yytype_int8 yydefgoto[] =
    number is the opposite.  If YYTABLE_NINF, syntax error.  */
 static const yytype_int8 yytable[] =
 {
-       9,    10,    11,    12,    13,    14,    36,    37,    38,    39,
-      40,    36,    37,    38,    39,    40,    29,    33,    38,    39,
-      40,    15,    35,     1,    30,     4,     5,    42,    31,    44,
-      45,    46,    47,    48,     6,    41,    23,     7,    24,    28,
-      43,    36,    37,    38,    39,    40,    25,    26,    34,    27,
-       0,     0,     0,     0,     0,     0,    16,     0,     0,     0,
-       0,     0,     0,     0,     0,    17
+       9,    10,    11,    12,    13,    14,    29,    41,    42,    43,
+      44,    45,    43,    44,    45,     1,     4,     5,     6,    23,
+       7,    15,    24,    28,    25,    26,    37,    30,    27,    38,
+       0,    39,    40,     0,     0,    31,    32,    33,    34,    35,
+      55,     0,     0,    57,    58,    59,    60,    61,    62,    63,
+      64,    65,    66,    67,    68,    69,    16,    41,    42,    43,
+      44,    45,    46,    47,     0,    17,     0,    48,    49,    50,
+      51,    52,    53,     0,     0,     0,     0,    41,    42,    43,
+      44,    45,    46,    47,     0,     0,    54,    48,    49,    50,
+      51,    52,    53,     0,     0,     0,     0,    41,    42,    43,
+      44,    45,    46,    47,     0,     0,    56,    48,    49,    50,
+      51,    52,    53,    41,    42,    43,    44,    45,    46,     0,
+       0,     0,     0,    48,    49,    50,    51,    52,    53,    41,
+      42,    43,    44,    45,     0,     0,     0,     0,     0,    48,
+      49,    50,    51,    52,    53
 };
 
 static const yytype_int8 yycheck[] =
 {
-       3,     4,     5,     6,     7,     8,    28,    29,    30,    31,
-      32,    28,    29,    30,    31,    32,    56,    24,    30,    31,
-      32,    24,    29,    23,    64,    56,     0,    34,    68,    36,
-      37,    38,    39,    40,    57,    57,    56,    58,    26,    68,
-      57,    28,    29,    30,    31,    32,    60,    60,    26,    60,
-      -1,    -1,    -1,    -1,    -1,    -1,    59,    -1,    -1,    -1,
-      -1,    -1,    -1,    -1,    -1,    68
+       3,     4,     5,     6,     7,     8,    35,    28,    29,    30,
+      31,    32,    30,    31,    32,    23,    56,     0,    57,    56,
+      58,    24,    26,    68,    60,    60,    24,    56,    60,    26,
+      -1,    29,    30,    -1,    -1,    64,    65,    66,    67,    68,
+      38,    -1,    -1,    41,    42,    43,    44,    45,    46,    47,
+      48,    49,    50,    51,    52,    53,    59,    28,    29,    30,
+      31,    32,    33,    34,    -1,    68,    -1,    38,    39,    40,
+      41,    42,    43,    -1,    -1,    -1,    -1,    28,    29,    30,
+      31,    32,    33,    34,    -1,    -1,    57,    38,    39,    40,
+      41,    42,    43,    -1,    -1,    -1,    -1,    28,    29,    30,
+      31,    32,    33,    34,    -1,    -1,    57,    38,    39,    40,
+      41,    42,    43,    28,    29,    30,    31,    32,    33,    -1,
+      -1,    -1,    -1,    38,    39,    40,    41,    42,    43,    28,
+      29,    30,    31,    32,    -1,    -1,    -1,    -1,    -1,    38,
+      39,    40,    41,    42,    43
 };
 
 /* YYSTOS[STATE-NUM] -- The symbol kind of the accessing symbol of
@@ -711,9 +744,11 @@ static const yytype_int8 yystos[] =
 {
        0,    23,    71,    72,    56,     0,    57,    58,    73,     3,
        4,     5,     6,     7,     8,    24,    59,    68,    74,    75,
-      76,    77,    78,    56,    26,    60,    60,    60,    68,    56,
-      64,    68,    79,    79,    26,    79,    28,    29,    30,    31,
-      32,    57,    79,    57,    79,    79,    79,    79,    79
+      76,    77,    78,    56,    26,    60,    60,    60,    68,    35,
+      56,    64,    65,    66,    67,    68,    79,    79,    26,    79,
+      79,    28,    29,    30,    31,    32,    33,    34,    38,    39,
+      40,    41,    42,    43,    57,    79,    57,    79,    79,    79,
+      79,    79,    79,    79,    79,    79,    79,    79,    79,    79
 };
 
 /* YYR1[RULE-NUM] -- Symbol kind of the left-hand side of rule RULE-NUM.  */
@@ -721,7 +756,8 @@ static const yytype_int8 yyr1[] =
 {
        0,    70,    71,    72,    73,    73,    74,    74,    74,    75,
       75,    76,    77,    78,    78,    78,    78,    78,    78,    79,
-      79,    79,    79,    79,    79,    79,    79
+      79,    79,    79,    79,    79,    79,    79,    79,    79,    79,
+      79,    79,    79,    79,    79,    79,    79,    79,    79
 };
 
 /* YYR2[RULE-NUM] -- Number of symbols on the right-hand side of rule RULE-NUM.  */
@@ -729,7 +765,8 @@ static const yytype_int8 yyr2[] =
 {
        0,     2,     1,     6,     2,     0,     2,     2,     2,     2,
        4,     3,     4,     1,     1,     1,     1,     1,     1,     3,
-       3,     3,     3,     3,     3,     1,     1
+       3,     3,     3,     3,     3,     3,     3,     3,     3,     3,
+       3,     3,     2,     3,     1,     1,     1,     1,     1
 };
 
 
@@ -1193,139 +1230,234 @@ yyreduce:
   switch (yyn)
     {
   case 2: /* program: main_function  */
-#line 66 "mytho.y"
+#line 83 "mytho.y"
       {
           fprintf(outputFile, "Parsing Successful\n");
       }
-#line 1201 "mytho.tab.c"
+#line 1238 "mytho.tab.c"
     break;
 
   case 9: /* declaration: type_spec IDENTIFIER  */
-#line 88 "mytho.y"
+#line 105 "mytho.y"
       {
-          insertSymbol((yyvsp[0].sval), (yyvsp[-1].sval));
+          insertSymbol((yyvsp[0].sval), (yyvsp[-1].dtype));
       }
-#line 1209 "mytho.tab.c"
-    break;
-
-  case 10: /* declaration: type_spec IDENTIFIER ASSIGN expression  */
-#line 93 "mytho.y"
-      {
-          insertSymbol((yyvsp[-2].sval), (yyvsp[-3].sval));
-          updateSymbol((yyvsp[-2].sval), (yyvsp[0].ival));
-      }
-#line 1218 "mytho.tab.c"
-    break;
-
-  case 11: /* assignment: IDENTIFIER ASSIGN expression  */
-#line 101 "mytho.y"
-      {
-          updateSymbol((yyvsp[-2].sval), (yyvsp[0].ival));
-      }
-#line 1226 "mytho.tab.c"
-    break;
-
-  case 12: /* print_stmt: PRINT LPAREN expression RPAREN  */
-#line 108 "mytho.y"
-      {
-          fprintf(outputFile, "%d\n", (yyvsp[-1].ival));
-      }
-#line 1234 "mytho.tab.c"
-    break;
-
-  case 13: /* type_spec: KEYWORD_INT  */
-#line 114 "mytho.y"
-                       { (yyval.sval) = "int"; }
-#line 1240 "mytho.tab.c"
-    break;
-
-  case 14: /* type_spec: KEYWORD_FLOAT  */
-#line 115 "mytho.y"
-                       { (yyval.sval) = "float"; }
 #line 1246 "mytho.tab.c"
     break;
 
+  case 10: /* declaration: type_spec IDENTIFIER ASSIGN expression  */
+#line 109 "mytho.y"
+      {
+          insertSymbol((yyvsp[-2].sval), (yyvsp[-3].dtype));
+          updateSymbol((yyvsp[-2].sval), (yyvsp[0].expr));
+      }
+#line 1255 "mytho.tab.c"
+    break;
+
+  case 11: /* assignment: IDENTIFIER ASSIGN expression  */
+#line 117 "mytho.y"
+      {
+          updateSymbol((yyvsp[-2].sval), (yyvsp[0].expr));
+      }
+#line 1263 "mytho.tab.c"
+    break;
+
+  case 12: /* print_stmt: PRINT LPAREN expression RPAREN  */
+#line 124 "mytho.y"
+      {
+          if ((yyvsp[-1].expr).type == TYPE_INT)
+              fprintf(outputFile, "%d\n", (yyvsp[-1].expr).val.iVal);
+          else if ((yyvsp[-1].expr).type == TYPE_FLOAT)
+              fprintf(outputFile, "%f\n", (yyvsp[-1].expr).val.fVal);
+          else if ((yyvsp[-1].expr).type == TYPE_DOUBLE)
+              fprintf(outputFile, "%lf\n", (yyvsp[-1].expr).val.dVal);
+          else if ((yyvsp[-1].expr).type == TYPE_CHAR)
+              fprintf(outputFile, "%c\n", (yyvsp[-1].expr).val.cVal);
+          else if ((yyvsp[-1].expr).type == TYPE_BOOL)
+              fprintf(outputFile, "%s\n", (yyvsp[-1].expr).val.bVal ? "true" : "false");
+      }
+#line 1280 "mytho.tab.c"
+    break;
+
+  case 13: /* type_spec: KEYWORD_INT  */
+#line 139 "mytho.y"
+                       { (yyval.dtype) = TYPE_INT; }
+#line 1286 "mytho.tab.c"
+    break;
+
+  case 14: /* type_spec: KEYWORD_FLOAT  */
+#line 140 "mytho.y"
+                       { (yyval.dtype) = TYPE_FLOAT; }
+#line 1292 "mytho.tab.c"
+    break;
+
   case 15: /* type_spec: KEYWORD_DOUBLE  */
-#line 116 "mytho.y"
-                       { (yyval.sval) = "double"; }
-#line 1252 "mytho.tab.c"
+#line 141 "mytho.y"
+                       { (yyval.dtype) = TYPE_DOUBLE; }
+#line 1298 "mytho.tab.c"
     break;
 
   case 16: /* type_spec: KEYWORD_LONG  */
-#line 117 "mytho.y"
-                       { (yyval.sval) = "long"; }
-#line 1258 "mytho.tab.c"
+#line 142 "mytho.y"
+                       { (yyval.dtype) = TYPE_INT; }
+#line 1304 "mytho.tab.c"
     break;
 
   case 17: /* type_spec: KEYWORD_CHAR  */
-#line 118 "mytho.y"
-                       { (yyval.sval) = "char"; }
-#line 1264 "mytho.tab.c"
+#line 143 "mytho.y"
+                       { (yyval.dtype) = TYPE_CHAR; }
+#line 1310 "mytho.tab.c"
     break;
 
   case 18: /* type_spec: KEYWORD_BOOL  */
-#line 119 "mytho.y"
-                       { (yyval.sval) = "bool"; }
-#line 1270 "mytho.tab.c"
+#line 144 "mytho.y"
+                       { (yyval.dtype) = TYPE_BOOL; }
+#line 1316 "mytho.tab.c"
     break;
 
   case 19: /* expression: expression OP_ADD expression  */
-#line 123 "mytho.y"
-                                     { (yyval.ival) = (yyvsp[-2].ival) + (yyvsp[0].ival); }
-#line 1276 "mytho.tab.c"
+#line 148 "mytho.y"
+                                     { (yyval.expr) = evaluateArithmetic((yyvsp[-2].expr), (yyvsp[0].expr), 1); }
+#line 1322 "mytho.tab.c"
     break;
 
   case 20: /* expression: expression OP_SUB expression  */
-#line 124 "mytho.y"
-                                     { (yyval.ival) = (yyvsp[-2].ival) - (yyvsp[0].ival); }
-#line 1282 "mytho.tab.c"
+#line 149 "mytho.y"
+                                     { (yyval.expr) = evaluateArithmetic((yyvsp[-2].expr), (yyvsp[0].expr), 2); }
+#line 1328 "mytho.tab.c"
     break;
 
   case 21: /* expression: expression OP_MUL expression  */
-#line 125 "mytho.y"
-                                     { (yyval.ival) = (yyvsp[-2].ival) * (yyvsp[0].ival); }
-#line 1288 "mytho.tab.c"
+#line 150 "mytho.y"
+                                     { (yyval.expr) = evaluateArithmetic((yyvsp[-2].expr), (yyvsp[0].expr), 3); }
+#line 1334 "mytho.tab.c"
     break;
 
   case 22: /* expression: expression OP_DIV expression  */
-#line 126 "mytho.y"
-                                     { 
-                                        if ((yyvsp[0].ival) == 0) {
-                                            yyerror("division by zero");
-                                            (yyval.ival) = 0;
-                                        } else {
-                                            (yyval.ival) = (yyvsp[-2].ival) / (yyvsp[0].ival);
-                                        }
-                                      }
-#line 1301 "mytho.tab.c"
+#line 151 "mytho.y"
+                                     { (yyval.expr) = evaluateArithmetic((yyvsp[-2].expr), (yyvsp[0].expr), 4); }
+#line 1340 "mytho.tab.c"
     break;
 
   case 23: /* expression: expression OP_MOD expression  */
-#line 134 "mytho.y"
-                                     { (yyval.ival) = (yyvsp[-2].ival) % (yyvsp[0].ival); }
-#line 1307 "mytho.tab.c"
+#line 153 "mytho.y"
+                                     {
+                                        if ((yyvsp[-2].expr).type != TYPE_INT || (yyvsp[0].expr).type != TYPE_INT) {
+                                            fprintf(outputFile, "Type Error: modulus only allowed for int\n");
+                                            exit(1);
+                                        }
+                                        (yyval.expr).type = TYPE_INT;
+                                        (yyval.expr).val.iVal = (yyvsp[-2].expr).val.iVal % (yyvsp[0].expr).val.iVal;
+                                      }
+#line 1353 "mytho.tab.c"
     break;
 
-  case 24: /* expression: LPAREN expression RPAREN  */
-#line 135 "mytho.y"
-                                     { (yyval.ival) = (yyvsp[-1].ival); }
-#line 1313 "mytho.tab.c"
+  case 24: /* expression: expression OP_LT expression  */
+#line 163 "mytho.y"
+                                     { (yyval.expr) = evaluateRelational((yyvsp[-2].expr), (yyvsp[0].expr), 1); }
+#line 1359 "mytho.tab.c"
     break;
 
-  case 25: /* expression: INT_LITERAL  */
-#line 136 "mytho.y"
-                                     { (yyval.ival) = (yyvsp[0].ival); }
-#line 1319 "mytho.tab.c"
+  case 25: /* expression: expression OP_GT expression  */
+#line 164 "mytho.y"
+                                     { (yyval.expr) = evaluateRelational((yyvsp[-2].expr), (yyvsp[0].expr), 2); }
+#line 1365 "mytho.tab.c"
     break;
 
-  case 26: /* expression: IDENTIFIER  */
-#line 137 "mytho.y"
-                 { (yyval.ival) = getSymbolValue((yyvsp[0].sval)); }
-#line 1325 "mytho.tab.c"
+  case 26: /* expression: expression OP_LE expression  */
+#line 165 "mytho.y"
+                                     { (yyval.expr) = evaluateRelational((yyvsp[-2].expr), (yyvsp[0].expr), 3); }
+#line 1371 "mytho.tab.c"
+    break;
+
+  case 27: /* expression: expression OP_GE expression  */
+#line 166 "mytho.y"
+                                     { (yyval.expr) = evaluateRelational((yyvsp[-2].expr), (yyvsp[0].expr), 4); }
+#line 1377 "mytho.tab.c"
+    break;
+
+  case 28: /* expression: expression OP_EQ expression  */
+#line 167 "mytho.y"
+                                     { (yyval.expr) = evaluateRelational((yyvsp[-2].expr), (yyvsp[0].expr), 5); }
+#line 1383 "mytho.tab.c"
+    break;
+
+  case 29: /* expression: expression OP_NE expression  */
+#line 168 "mytho.y"
+                                     { (yyval.expr) = evaluateRelational((yyvsp[-2].expr), (yyvsp[0].expr), 6); }
+#line 1389 "mytho.tab.c"
+    break;
+
+  case 30: /* expression: expression OP_AND expression  */
+#line 171 "mytho.y"
+                                     { (yyval.expr) = evaluateLogical((yyvsp[-2].expr), (yyvsp[0].expr), 1); }
+#line 1395 "mytho.tab.c"
+    break;
+
+  case 31: /* expression: expression OP_OR expression  */
+#line 172 "mytho.y"
+                                     { (yyval.expr) = evaluateLogical((yyvsp[-2].expr), (yyvsp[0].expr), 2); }
+#line 1401 "mytho.tab.c"
+    break;
+
+  case 32: /* expression: OP_NOT expression  */
+#line 173 "mytho.y"
+                                     { (yyval.expr) = evaluateNot((yyvsp[0].expr)); }
+#line 1407 "mytho.tab.c"
+    break;
+
+  case 33: /* expression: LPAREN expression RPAREN  */
+#line 175 "mytho.y"
+                                     { (yyval.expr) = (yyvsp[-1].expr); }
+#line 1413 "mytho.tab.c"
+    break;
+
+  case 34: /* expression: INT_LITERAL  */
+#line 177 "mytho.y"
+                                     {
+                                        (yyval.expr).type = TYPE_INT;
+                                        (yyval.expr).val.iVal = (yyvsp[0].ival);
+                                      }
+#line 1422 "mytho.tab.c"
+    break;
+
+  case 35: /* expression: FLOAT_LITERAL  */
+#line 181 "mytho.y"
+                                     {
+                                        (yyval.expr).type = TYPE_DOUBLE;
+                                        (yyval.expr).val.dVal = (yyvsp[0].fval);
+                                      }
+#line 1431 "mytho.tab.c"
+    break;
+
+  case 36: /* expression: CHAR_LITERAL  */
+#line 185 "mytho.y"
+                                     {
+                                        (yyval.expr).type = TYPE_CHAR;
+                                        (yyval.expr).val.cVal = (yyvsp[0].cval);
+                                      }
+#line 1440 "mytho.tab.c"
+    break;
+
+  case 37: /* expression: BOOL_LITERAL  */
+#line 189 "mytho.y"
+                                     {
+                                        (yyval.expr).type = TYPE_BOOL;
+                                        (yyval.expr).val.bVal = (yyvsp[0].ival);
+                                      }
+#line 1449 "mytho.tab.c"
+    break;
+
+  case 38: /* expression: IDENTIFIER  */
+#line 193 "mytho.y"
+                                     {
+                                        (yyval.expr) = getSymbolValue((yyvsp[0].sval));
+                                      }
+#line 1457 "mytho.tab.c"
     break;
 
 
-#line 1329 "mytho.tab.c"
+#line 1461 "mytho.tab.c"
 
       default: break;
     }
@@ -1518,10 +1650,21 @@ yyreturnlab:
   return yyresult;
 }
 
-#line 140 "mytho.y"
+#line 197 "mytho.y"
 
 
-void insertSymbol(char *name, char *type) {
+const char* typeToString(DataType t) {
+    switch(t) {
+        case TYPE_INT: return "int";
+        case TYPE_FLOAT: return "float";
+        case TYPE_DOUBLE: return "double";
+        case TYPE_CHAR: return "char";
+        case TYPE_BOOL: return "bool";
+        default: return "invalid";
+    }
+}
+
+void insertSymbol(char *name, DataType type) {
     for(int i = 0; i < symbolCount; i++) {
         if(strcmp(symbolTable[i].name, name) == 0) {
             fprintf(outputFile, "Semantic Error: Variable '%s' already declared\n", name);
@@ -1530,8 +1673,15 @@ void insertSymbol(char *name, char *type) {
     }
 
     strcpy(symbolTable[symbolCount].name, name);
-    strcpy(symbolTable[symbolCount].type, type);
-    symbolTable[symbolCount].value = 0;
+    symbolTable[symbolCount].type = type;
+
+    /* default initialize */
+    if (type == TYPE_INT) symbolTable[symbolCount].val.iVal = 0;
+    else if (type == TYPE_FLOAT) symbolTable[symbolCount].val.fVal = 0.0f;
+    else if (type == TYPE_DOUBLE) symbolTable[symbolCount].val.dVal = 0.0;
+    else if (type == TYPE_CHAR) symbolTable[symbolCount].val.cVal = '\0';
+    else if (type == TYPE_BOOL) symbolTable[symbolCount].val.bVal = 0;
+
     symbolCount++;
 }
 
@@ -1543,33 +1693,238 @@ int lookupSymbol(char *name) {
     }
     return -1;
 }
-void updateSymbol(char *name, int value) {
 
-    int index = lookupSymbol(name);
+int isAssignable(DataType target, DataType source) {
+    if (target == source) return 1;
 
-    if(index == -1) {
-        fprintf(outputFile,
-        "Semantic Error: Variable '%s' not declared\n", name);
-        exit(1);
-    }
+    /* widening conversions */
+    if (target == TYPE_FLOAT && source == TYPE_INT) return 1;
+    if (target == TYPE_DOUBLE && source == TYPE_INT) return 1;
+    if (target == TYPE_DOUBLE && source == TYPE_FLOAT) return 1;
 
-    symbolTable[index].value = value;
+    return 0;
 }
-int getSymbolValue(char *name) {
 
+void updateSymbol(char *name, ExprValue expr) {
     int index = lookupSymbol(name);
 
     if(index == -1) {
-        fprintf(outputFile,
-        "Semantic Error: Variable '%s' not declared\n", name);
+        fprintf(outputFile, "Semantic Error: Variable '%s' not declared\n", name);
         exit(1);
     }
 
-    return symbolTable[index].value;
+    DataType target = symbolTable[index].type;
+    DataType source = expr.type;
+
+    if (!isAssignable(target, source)) {
+        fprintf(outputFile, "Type Error: cannot assign %s to %s variable '%s'\n",
+                typeToString(source), typeToString(target), name);
+        exit(1);
+    }
+
+    if (target == TYPE_INT) {
+        symbolTable[index].val.iVal = expr.val.iVal;
+    }
+    else if (target == TYPE_FLOAT) {
+        if (source == TYPE_INT)
+            symbolTable[index].val.fVal = (float)expr.val.iVal;
+        else
+            symbolTable[index].val.fVal = expr.val.fVal;
+    }
+    else if (target == TYPE_DOUBLE) {
+        if (source == TYPE_INT)
+            symbolTable[index].val.dVal = (double)expr.val.iVal;
+        else if (source == TYPE_FLOAT)
+            symbolTable[index].val.dVal = (double)expr.val.fVal;
+        else
+            symbolTable[index].val.dVal = expr.val.dVal;
+    }
+    else if (target == TYPE_CHAR) {
+        symbolTable[index].val.cVal = expr.val.cVal;
+    }
+    else if (target == TYPE_BOOL) {
+        symbolTable[index].val.bVal = expr.val.bVal;
+    }
+}
+
+ExprValue getSymbolValue(char *name) {
+    int index = lookupSymbol(name);
+    ExprValue result;
+
+    if(index == -1) {
+        fprintf(outputFile, "Semantic Error: Variable '%s' not declared\n", name);
+        exit(1);
+    }
+
+    result.type = symbolTable[index].type;
+    result.val = symbolTable[index].val;
+    return result;
+}
+
+ExprValue evaluateArithmetic(ExprValue a, ExprValue b, int op) {
+    ExprValue result;
+
+    /* char and bool arithmetic not allowed for now */
+    if (a.type == TYPE_CHAR || a.type == TYPE_BOOL ||
+        b.type == TYPE_CHAR || b.type == TYPE_BOOL) {
+        fprintf(outputFile, "Type Error: invalid arithmetic operation\n");
+        exit(1);
+    }
+
+    /* promote to double if either is double */
+    if (a.type == TYPE_DOUBLE || b.type == TYPE_DOUBLE) {
+        double x = (a.type == TYPE_DOUBLE) ? a.val.dVal :
+                   (a.type == TYPE_FLOAT)  ? a.val.fVal :
+                                             a.val.iVal;
+
+        double y = (b.type == TYPE_DOUBLE) ? b.val.dVal :
+                   (b.type == TYPE_FLOAT)  ? b.val.fVal :
+                                             b.val.iVal;
+
+        result.type = TYPE_DOUBLE;
+
+        if (op == 1) result.val.dVal = x + y;
+        else if (op == 2) result.val.dVal = x - y;
+        else if (op == 3) result.val.dVal = x * y;
+        else if (op == 4) {
+            if (y == 0) {
+                yyerror("division by zero");
+                result.val.dVal = 0;
+            } else {
+                result.val.dVal = x / y;
+            }
+        }
+    }
+    /* promote to float if either is float */
+    else if (a.type == TYPE_FLOAT || b.type == TYPE_FLOAT) {
+        float x = (a.type == TYPE_FLOAT) ? a.val.fVal : a.val.iVal;
+        float y = (b.type == TYPE_FLOAT) ? b.val.fVal : b.val.iVal;
+
+        result.type = TYPE_FLOAT;
+
+        if (op == 1) result.val.fVal = x + y;
+        else if (op == 2) result.val.fVal = x - y;
+        else if (op == 3) result.val.fVal = x * y;
+        else if (op == 4) {
+            if (y == 0) {
+                yyerror("division by zero");
+                result.val.fVal = 0;
+            } else {
+                result.val.fVal = x / y;
+            }
+        }
+    }
+    /* otherwise int */
+    else {
+        int x = a.val.iVal;
+        int y = b.val.iVal;
+
+        result.type = TYPE_INT;
+
+        if (op == 1) result.val.iVal = x + y;
+        else if (op == 2) result.val.iVal = x - y;
+        else if (op == 3) result.val.iVal = x * y;
+        else if (op == 4) {
+            if (y == 0) {
+                yyerror("division by zero");
+                result.val.iVal = 0;
+            } else {
+                result.val.iVal = x / y;
+            }
+        }
+    }
+
+    return result;
+}
+ExprValue evaluateRelational(ExprValue a, ExprValue b, int op) {
+    ExprValue result;
+    result.type = TYPE_BOOL;
+
+    /* equality / inequality for bool allowed */
+    if ((a.type == TYPE_BOOL || b.type == TYPE_BOOL)) {
+        if (a.type != TYPE_BOOL || b.type != TYPE_BOOL) {
+            fprintf(outputFile, "Type Error: cannot compare bool with non-bool\n");
+            exit(1);
+        }
+
+        if (op == 5) result.val.bVal = (a.val.bVal == b.val.bVal);
+        else if (op == 6) result.val.bVal = (a.val.bVal != b.val.bVal);
+        else {
+            fprintf(outputFile, "Type Error: invalid relational operation on bool\n");
+            exit(1);
+        }
+
+        return result;
+    }
+
+    /* char comparisons allowed */
+    if (a.type == TYPE_CHAR && b.type == TYPE_CHAR) {
+        char x = a.val.cVal;
+        char y = b.val.cVal;
+
+        if (op == 1) result.val.bVal = (x < y);
+        else if (op == 2) result.val.bVal = (x > y);
+        else if (op == 3) result.val.bVal = (x <= y);
+        else if (op == 4) result.val.bVal = (x >= y);
+        else if (op == 5) result.val.bVal = (x == y);
+        else if (op == 6) result.val.bVal = (x != y);
+
+        return result;
+    }
+
+    /* char with non-char not allowed */
+    if (a.type == TYPE_CHAR || b.type == TYPE_CHAR) {
+        fprintf(outputFile, "Type Error: cannot compare char with non-char\n");
+        exit(1);
+    }
+
+    /* numeric comparisons */
+    double x = (a.type == TYPE_DOUBLE) ? a.val.dVal :
+               (a.type == TYPE_FLOAT)  ? a.val.fVal :
+                                         a.val.iVal;
+
+    double y = (b.type == TYPE_DOUBLE) ? b.val.dVal :
+               (b.type == TYPE_FLOAT)  ? b.val.fVal :
+                                         b.val.iVal;
+
+    if (op == 1) result.val.bVal = (x < y);
+    else if (op == 2) result.val.bVal = (x > y);
+    else if (op == 3) result.val.bVal = (x <= y);
+    else if (op == 4) result.val.bVal = (x >= y);
+    else if (op == 5) result.val.bVal = (x == y);
+    else if (op == 6) result.val.bVal = (x != y);
+
+    return result;
+}
+ExprValue evaluateLogical(ExprValue a, ExprValue b, int op) {
+    ExprValue result;
+    result.type = TYPE_BOOL;
+
+    if (a.type != TYPE_BOOL || b.type != TYPE_BOOL) {
+        fprintf(outputFile, "Type Error: logical operators require bool operands\n");
+        exit(1);
+    }
+
+    if (op == 1) result.val.bVal = a.val.bVal && b.val.bVal;   /* AND */
+    else if (op == 2) result.val.bVal = a.val.bVal || b.val.bVal; /* OR */
+
+    return result;
+}
+ExprValue evaluateNot(ExprValue a) {
+    ExprValue result;
+    result.type = TYPE_BOOL;
+
+    if (a.type != TYPE_BOOL) {
+        fprintf(outputFile, "Type Error: NOT operator requires bool operand\n");
+        exit(1);
+    }
+
+    result.val.bVal = !a.val.bVal;
+    return result;
 }
 
 void yyerror(const char *s) {
-    fprintf(outputFile, "Syntax Error at line %d\n", yylineno);
+    fprintf(outputFile, "Syntax Error at line %d: %s\n", yylineno, s);
 }
 
 int main(void) {
@@ -1582,6 +1937,7 @@ int main(void) {
     outputFile = fopen("output.txt", "w");
     if (!outputFile) {
         perror("output.txt");
+        fclose(yyin);
         return 1;
     }
 

@@ -1,1 +1,1 @@
-Semantic Error: Variable 'a' not declared
+Type Error: cannot assign double to int variable 'a'

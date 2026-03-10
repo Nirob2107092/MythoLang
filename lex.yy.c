@@ -632,12 +632,13 @@ char *yytext;
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "mytho_shared.h"
 #include "mytho.tab.h"
 
 extern YYSTYPE yylval;
 FILE *yyin;
-#line 640 "lex.yy.c"
 #line 641 "lex.yy.c"
+#line 642 "lex.yy.c"
 
 #define INITIAL 0
 
@@ -854,10 +855,10 @@ YY_DECL
 		}
 
 	{
-#line 18 "mytho.l"
+#line 19 "mytho.l"
 
 
-#line 861 "lex.yy.c"
+#line 862 "lex.yy.c"
 
 	while ( /*CONSTCOND*/1 )		/* loops until end-of-file is reached */
 		{
@@ -926,358 +927,358 @@ do_action:	/* This label is used only to access EOF actions. */
 
 case 1:
 YY_RULE_SETUP
-#line 20 "mytho.l"
+#line 21 "mytho.l"
 { }
 	YY_BREAK
 case 2:
 YY_RULE_SETUP
-#line 22 "mytho.l"
+#line 23 "mytho.l"
 { return KEYWORD_INT; }
 	YY_BREAK
 case 3:
 YY_RULE_SETUP
-#line 23 "mytho.l"
+#line 24 "mytho.l"
 { return KEYWORD_FLOAT; }
 	YY_BREAK
 case 4:
 YY_RULE_SETUP
-#line 24 "mytho.l"
+#line 25 "mytho.l"
 { return KEYWORD_DOUBLE; }
 	YY_BREAK
 case 5:
 YY_RULE_SETUP
-#line 25 "mytho.l"
+#line 26 "mytho.l"
 { return KEYWORD_LONG; }
 	YY_BREAK
 case 6:
 YY_RULE_SETUP
-#line 26 "mytho.l"
+#line 27 "mytho.l"
 { return KEYWORD_CHAR; }
 	YY_BREAK
 case 7:
 YY_RULE_SETUP
-#line 27 "mytho.l"
+#line 28 "mytho.l"
 { return KEYWORD_BOOL; }
 	YY_BREAK
 case 8:
 YY_RULE_SETUP
-#line 28 "mytho.l"
+#line 29 "mytho.l"
 { return KEYWORD_VOID; }
 	YY_BREAK
 case 9:
 YY_RULE_SETUP
-#line 30 "mytho.l"
+#line 31 "mytho.l"
 { return IF; }
 	YY_BREAK
 case 10:
 YY_RULE_SETUP
-#line 31 "mytho.l"
+#line 32 "mytho.l"
 { return ELSE_IF; }
 	YY_BREAK
 case 11:
 YY_RULE_SETUP
-#line 32 "mytho.l"
+#line 33 "mytho.l"
 { return ELSE; }
 	YY_BREAK
 case 12:
 YY_RULE_SETUP
-#line 33 "mytho.l"
+#line 34 "mytho.l"
 { return FOR; }
 	YY_BREAK
 case 13:
 YY_RULE_SETUP
-#line 34 "mytho.l"
+#line 35 "mytho.l"
 { return WHILE; }
 	YY_BREAK
 case 14:
 YY_RULE_SETUP
-#line 35 "mytho.l"
+#line 36 "mytho.l"
 { return DO; }
 	YY_BREAK
 case 15:
 YY_RULE_SETUP
-#line 36 "mytho.l"
+#line 37 "mytho.l"
 { return SWITCH; }
 	YY_BREAK
 case 16:
 YY_RULE_SETUP
-#line 37 "mytho.l"
+#line 38 "mytho.l"
 { return CASE; }
 	YY_BREAK
 case 17:
 YY_RULE_SETUP
-#line 38 "mytho.l"
+#line 39 "mytho.l"
 { return DEFAULT; }
 	YY_BREAK
 case 18:
 YY_RULE_SETUP
-#line 39 "mytho.l"
+#line 40 "mytho.l"
 { return BREAK; }
 	YY_BREAK
 case 19:
 YY_RULE_SETUP
-#line 40 "mytho.l"
+#line 41 "mytho.l"
 { return CONTINUE; }
 	YY_BREAK
 case 20:
 YY_RULE_SETUP
-#line 41 "mytho.l"
+#line 42 "mytho.l"
 { return RETURN; }
 	YY_BREAK
 case 21:
 YY_RULE_SETUP
-#line 43 "mytho.l"
+#line 44 "mytho.l"
 { return FUNCTION; }
 	YY_BREAK
 case 22:
 YY_RULE_SETUP
-#line 44 "mytho.l"
+#line 45 "mytho.l"
 { return MAIN; }
 	YY_BREAK
 case 23:
 YY_RULE_SETUP
-#line 46 "mytho.l"
+#line 47 "mytho.l"
 { return PRINT; }
 	YY_BREAK
 case 24:
 YY_RULE_SETUP
-#line 47 "mytho.l"
+#line 48 "mytho.l"
 { return INPUT; }
 	YY_BREAK
 case 25:
 YY_RULE_SETUP
-#line 49 "mytho.l"
+#line 50 "mytho.l"
 { return ASSIGN; }
 	YY_BREAK
 case 26:
 YY_RULE_SETUP
-#line 50 "mytho.l"
+#line 51 "mytho.l"
 { return RETTYPE; }
 	YY_BREAK
 case 27:
 YY_RULE_SETUP
-#line 52 "mytho.l"
+#line 53 "mytho.l"
 { return OP_ADD; }
 	YY_BREAK
 case 28:
 YY_RULE_SETUP
-#line 53 "mytho.l"
+#line 54 "mytho.l"
 { return OP_SUB; }
 	YY_BREAK
 case 29:
 YY_RULE_SETUP
-#line 54 "mytho.l"
+#line 55 "mytho.l"
 { return OP_MUL; }
 	YY_BREAK
 case 30:
 YY_RULE_SETUP
-#line 55 "mytho.l"
+#line 56 "mytho.l"
 { return OP_DIV; }
 	YY_BREAK
 case 31:
 YY_RULE_SETUP
-#line 56 "mytho.l"
+#line 57 "mytho.l"
 { return OP_MOD; }
 	YY_BREAK
 case 32:
 YY_RULE_SETUP
-#line 58 "mytho.l"
+#line 59 "mytho.l"
 { return OP_AND; }
 	YY_BREAK
 case 33:
 YY_RULE_SETUP
-#line 59 "mytho.l"
+#line 60 "mytho.l"
 { return OP_OR; }
 	YY_BREAK
 case 34:
 YY_RULE_SETUP
-#line 60 "mytho.l"
+#line 61 "mytho.l"
 { return OP_NOT; }
 	YY_BREAK
 case 35:
 YY_RULE_SETUP
-#line 61 "mytho.l"
+#line 62 "mytho.l"
 { return OP_XOR; }
 	YY_BREAK
 case 36:
 YY_RULE_SETUP
-#line 63 "mytho.l"
+#line 64 "mytho.l"
 { return OP_POW; }
 	YY_BREAK
 case 37:
 YY_RULE_SETUP
-#line 65 "mytho.l"
+#line 66 "mytho.l"
 { return OP_LE; }
 	YY_BREAK
 case 38:
 YY_RULE_SETUP
-#line 66 "mytho.l"
+#line 67 "mytho.l"
 { return OP_GE; }
 	YY_BREAK
 case 39:
 YY_RULE_SETUP
-#line 67 "mytho.l"
+#line 68 "mytho.l"
 { return OP_NE; }
 	YY_BREAK
 case 40:
 YY_RULE_SETUP
-#line 68 "mytho.l"
+#line 69 "mytho.l"
 { return OP_EQ; }
 	YY_BREAK
 case 41:
 YY_RULE_SETUP
-#line 69 "mytho.l"
+#line 70 "mytho.l"
 { return OP_LT; }
 	YY_BREAK
 case 42:
 YY_RULE_SETUP
-#line 70 "mytho.l"
+#line 71 "mytho.l"
 { return OP_GT; }
 	YY_BREAK
 case 43:
 YY_RULE_SETUP
-#line 72 "mytho.l"
+#line 73 "mytho.l"
 { return ROOT; }
 	YY_BREAK
 case 44:
 YY_RULE_SETUP
-#line 73 "mytho.l"
+#line 74 "mytho.l"
 { return FLOOR_FN; }
 	YY_BREAK
 case 45:
 YY_RULE_SETUP
-#line 74 "mytho.l"
+#line 75 "mytho.l"
 { return CEIL_FN; }
 	YY_BREAK
 case 46:
 YY_RULE_SETUP
-#line 75 "mytho.l"
+#line 76 "mytho.l"
 { return ABS_FN; }
 	YY_BREAK
 case 47:
 YY_RULE_SETUP
-#line 76 "mytho.l"
+#line 77 "mytho.l"
 { return LOG_FN; }
 	YY_BREAK
 case 48:
 YY_RULE_SETUP
-#line 77 "mytho.l"
+#line 78 "mytho.l"
 { return SIN_FN; }
 	YY_BREAK
 case 49:
 YY_RULE_SETUP
-#line 78 "mytho.l"
+#line 79 "mytho.l"
 { return COS_FN; }
 	YY_BREAK
 case 50:
 YY_RULE_SETUP
-#line 79 "mytho.l"
+#line 80 "mytho.l"
 { return TAN_FN; }
 	YY_BREAK
 case 51:
 YY_RULE_SETUP
-#line 80 "mytho.l"
+#line 81 "mytho.l"
 { return ASIN_FN; }
 	YY_BREAK
 case 52:
 YY_RULE_SETUP
-#line 81 "mytho.l"
+#line 82 "mytho.l"
 { return ACOS_FN; }
 	YY_BREAK
 case 53:
 YY_RULE_SETUP
-#line 82 "mytho.l"
+#line 83 "mytho.l"
 { return ATAN_FN; }
 	YY_BREAK
 case 54:
 YY_RULE_SETUP
-#line 83 "mytho.l"
+#line 84 "mytho.l"
 { return AMBROSIA_FN; }
 	YY_BREAK
 case 55:
 YY_RULE_SETUP
-#line 85 "mytho.l"
+#line 86 "mytho.l"
 { yylval.ival = 1; return BOOL_LITERAL; }
 	YY_BREAK
 case 56:
 YY_RULE_SETUP
-#line 86 "mytho.l"
+#line 87 "mytho.l"
 { yylval.ival = 0; return BOOL_LITERAL; }
 	YY_BREAK
 case 57:
 YY_RULE_SETUP
-#line 88 "mytho.l"
+#line 89 "mytho.l"
 { return LPAREN; }
 	YY_BREAK
 case 58:
 YY_RULE_SETUP
-#line 89 "mytho.l"
+#line 90 "mytho.l"
 { return RPAREN; }
 	YY_BREAK
 case 59:
 YY_RULE_SETUP
-#line 90 "mytho.l"
+#line 91 "mytho.l"
 { return LBRACE; }
 	YY_BREAK
 case 60:
 YY_RULE_SETUP
-#line 91 "mytho.l"
+#line 92 "mytho.l"
 { return RBRACE; }
 	YY_BREAK
 case 61:
 YY_RULE_SETUP
-#line 92 "mytho.l"
+#line 93 "mytho.l"
 { return DOT; }
 	YY_BREAK
 case 62:
 YY_RULE_SETUP
-#line 93 "mytho.l"
+#line 94 "mytho.l"
 { return COLON; }
 	YY_BREAK
 case 63:
 YY_RULE_SETUP
-#line 94 "mytho.l"
+#line 95 "mytho.l"
 { return COMMA; }
 	YY_BREAK
 case 64:
 YY_RULE_SETUP
-#line 96 "mytho.l"
+#line 97 "mytho.l"
 { yylval.fval = atof(yytext); return FLOAT_LITERAL; }
 	YY_BREAK
 case 65:
 YY_RULE_SETUP
-#line 97 "mytho.l"
+#line 98 "mytho.l"
 { yylval.ival = atoi(yytext); return INT_LITERAL; }
 	YY_BREAK
 case 66:
 YY_RULE_SETUP
-#line 99 "mytho.l"
+#line 100 "mytho.l"
 { yylval.cval = yytext[1]; return CHAR_LITERAL; }
 	YY_BREAK
 case 67:
 YY_RULE_SETUP
-#line 100 "mytho.l"
+#line 101 "mytho.l"
 { yylval.sval = strdup(yytext); return STRING_LITERAL; }
 	YY_BREAK
 case 68:
 YY_RULE_SETUP
-#line 102 "mytho.l"
+#line 103 "mytho.l"
 { yylval.sval = strdup(yytext); return IDENTIFIER; }
 	YY_BREAK
 case 69:
 YY_RULE_SETUP
-#line 104 "mytho.l"
+#line 105 "mytho.l"
 { }
 	YY_BREAK
 case 70:
 /* rule 70 can match eol */
 YY_RULE_SETUP
-#line 105 "mytho.l"
+#line 106 "mytho.l"
 { }
 	YY_BREAK
 case 71:
 YY_RULE_SETUP
-#line 107 "mytho.l"
+#line 108 "mytho.l"
 {
                             fprintf(stderr, "Lexical Error: invalid token '%s' at line %d\n", yytext, yylineno);
                             return INVALID;
@@ -1285,10 +1286,10 @@ YY_RULE_SETUP
 	YY_BREAK
 case 72:
 YY_RULE_SETUP
-#line 112 "mytho.l"
+#line 113 "mytho.l"
 ECHO;
 	YY_BREAK
-#line 1292 "lex.yy.c"
+#line 1293 "lex.yy.c"
 case YY_STATE_EOF(INITIAL):
 	yyterminate();
 
@@ -2305,5 +2306,5 @@ void yyfree (void * ptr )
 
 #define YYTABLES_NAME "yytables"
 
-#line 112 "mytho.l"
+#line 113 "mytho.l"
 

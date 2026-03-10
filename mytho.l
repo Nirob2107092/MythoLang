@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "mytho_shared.h"
 #include "mytho.tab.h"
 
 extern YYSTYPE yylval;
