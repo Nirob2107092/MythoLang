@@ -2,7 +2,16 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#define MAX_SYMBOLS 100
 
+typedef struct {
+    char name[50];
+    char type[20];
+    int value;
+} Symbol;
+
+Symbol symbolTable[MAX_SYMBOLS];
+int symbolCount = 0;
 int yylex(void);
 void yyerror(const char *s);
 
@@ -109,6 +118,20 @@ expression
     ;
 
 %%
+
+void insertSymbol(char *name, char *type) {
+    for(int i = 0; i < symbolCount; i++) {
+        if(strcmp(symbolTable[i].name, name) == 0) {
+            fprintf(outputFile, "Semantic Error: Variable '%s' already declared\n", name);
+            exit(1);
+        }
+    }
+
+    strcpy(symbolTable[symbolCount].name, name);
+    strcpy(symbolTable[symbolCount].type, type);
+    symbolTable[symbolCount].value = 0;
+    symbolCount++;
+}
 
 void yyerror(const char *s) {
     fprintf(outputFile, "Syntax Error at line %d\n", yylineno);
