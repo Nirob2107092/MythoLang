@@ -1,101 +1,113 @@
-Mytholang Compiler (Flex + Bison)
+# Mytholang Compiler (Flex + Bison)
 
 A simple compiler front-end for Mytholang, a custom programming language inspired by mythology-themed keywords.
 This project implements the first stages of a compiler using Flex (Lexical Analysis) and Bison (Syntax Analysis).
 
-The compiler reads Mytholang source code from input_mytho.txt, performs lexical and syntax analysis, and writes the compilation result to output.txt.
+The compiler reads Mytholang source code from `input_mytho.txt`, performs lexical and syntax analysis, and writes the compilation result to `output.txt`.
 
-Project Overview
+## Project Overview
 
 Compilers typically work in multiple phases:
 
-Lexical Analysis (Scanner) – Break source code into tokens
-
-Syntax Analysis (Parser) – Check grammatical structure
-
-Semantic Analysis – Validate meaning and types
-
-Intermediate Code Generation
-
-Optimization
-
-Code Generation
+1. **Lexical Analysis (Scanner)** – Break source code into tokens
+2. **Syntax Analysis (Parser)** – Check grammatical structure
+3. **Semantic Analysis** – Validate meaning and types
+4. **Intermediate Code Generation**
+5. **Optimization**
+6. **Code Generation**
 
 This project currently implements the first two phases.
 
-Features
-Lexical Analysis (Flex)
+## Features
+
+### Lexical Analysis (Flex)
 
 The lexer recognizes:
 
-Data Types
-zeus        → int
-apollo      → float
-hera        → double
-titan       → long
-charizard   → char
-truth       → bool
-Abyss       → void
-Control Statements
-omen        → if
-fate        → else if
-destiny     → else
-cycle       → for
-eternal     → while
-invoke      → do while
-judgement   → switch
-verdict     → case
-otherwise   → default
-halt        → break
-persist     → continue
-back        → return
-Operators
-add         → +
-minus       → -
-forge       → *
-divide      → /
-rem         → %
+#### Data Types
 
-AND         → &&
-OR          → ||
-NOT         → !
-XOR         → ^
+| Mytholang   | Standard |
+| ----------- | -------- |
+| `zeus`      | `int`    |
+| `apollo`    | `float`  |
+| `hera`      | `double` |
+| `titan`     | `long`   |
+| `charizard` | `char`   |
+| `truth`     | `bool`   |
+| `Abyss`     | `void`   |
 
-:=          → assignment
-:->         → return type
-Relational Operators
-<  >  <=  >=  =  =!
-Built-in Math Functions
-root()
-flr()
-ceil()
-abs()
-logarithm()
-sine()
-cosine()
-tan()
-asine()
-acosine()
-atan()
-ambrosia()
-I/O Functions
-proclaim()  → print
-listen()    → input
-Syntax Analysis (Bison)
+#### Control Statements
+
+| Mytholang   | Standard   |
+| ----------- | ---------- |
+| `omen`      | `if`       |
+| `fate`      | `else if`  |
+| `destiny`   | `else`     |
+| `cycle`     | `for`      |
+| `eternal`   | `while`    |
+| `invoke`    | `do while` |
+| `judgement` | `switch`   |
+| `verdict`   | `case`     |
+| `otherwise` | `default`  |
+| `halt`      | `break`    |
+| `persist`   | `continue` |
+| `back`      | `return`   |
+
+#### Operators
+
+| Mytholang | Standard    |
+| --------- | ----------- | --- | --- |
+| `add`     | `+`         |
+| `minus`   | `-`         |
+| `forge`   | `*`         |
+| `divide`  | `/`         |
+| `rem`     | `%`         |
+| `AND`     | `&&`        |
+| `OR`      | `           |     | `   |
+| `NOT`     | `!`         |
+| `XOR`     | `^`         |
+| `:=`      | assignment  |
+| `:->`     | return type |
+
+#### Relational Operators
+
+`<` `>` `<=` `>=` `=` `=!`
+
+#### Built-in Math Functions
+
+- `root()`
+- `flr()`
+- `ceil()`
+- `abs()`
+- `logarithm()`
+- `sine()`
+- `cosine()`
+- `tan()`
+- `asine()`
+- `acosine()`
+- `atan()`
+- `ambrosia()`
+
+#### I/O Functions
+
+| Mytholang    | Standard |
+| ------------ | -------- |
+| `proclaim()` | `print`  |
+| `listen()`   | `input`  |
+
+### Syntax Analysis (Bison)
 
 The parser currently supports:
 
-Prometheus() main function
+- `Prometheus()` main function
+- Variable declarations
+- Variable assignments
+- Arithmetic expressions
+- Print statements using `proclaim()`
 
-Variable declarations
+## Project Structure
 
-Variable assignments
-
-Arithmetic expressions
-
-Print statements using proclaim()
-
-Project Structure
+```
 MythoLang/
 │
 ├── mytho.l          # Flex lexer definition
@@ -108,93 +120,116 @@ MythoLang/
 ├── mytho.tab.h      # Generated header
 │
 └── mytho.exe        # Compiled executable
-Example Mytholang Program
+```
+
+## Example Mytholang Program
+
+```mytholang
 Prometheus() {
     zeus eggs .
     zeus milk := 5 .
     eggs := 3 add 2 .
     proclaim(eggs) .
 }
-Expected Output
+```
 
-output.txt
+### Expected Output
 
+**output.txt**
+
+```
 Parsing Successful
+```
 
 If a syntax error occurs:
 
+```
 Syntax Error at line X
-Installation Requirements
+```
+
+## Installation Requirements
 
 You must have:
 
-Flex
-Bison
-GCC
-Ubuntu / WSL
+- **Flex**
+- **Bison**
+- **GCC**
+
+### Ubuntu / WSL
+
+```bash
 sudo apt update
 sudo apt install flex bison gcc
-Windows (Recommended)
+```
+
+### Windows (Recommended)
 
 Use WSL Ubuntu or MSYS2.
 
-How to Build
+## How to Build
 
-Generate parser and lexer:
+1. Generate parser and lexer:
 
+```bash
 bison -d mytho.y
 flex mytho.l
+```
 
-Compile the project:
+2. Compile the project:
 
+```bash
 gcc lex.yy.c mytho.tab.c -o mytho.exe -lfl
-How to Run
+```
 
-Place your Mytholang program inside:
+## How to Run
 
-input_mytho.txt
+1. Place your Mytholang program inside:
 
-Run the compiler:
+   ```
+   input_mytho.txt
+   ```
 
-./mytho.exe
+2. Run the compiler:
 
-The result will be written to:
+   ```bash
+   ./mytho.exe
+   ```
 
-output.txt
-Current Implementation Status
-Compiler Phase	Status
-Lexical Analysis	Completed
-Syntax Analysis	Completed
-Error Handling	Basic
-Symbol Table	Planned
-Type Checking	Planned
-Control Flow Parsing	Planned
-Intermediate Code Generation	Planned
-Future Work
+3. The result will be written to:
+   ```
+   output.txt
+   ```
+
+## Current Implementation Status
+
+| Compiler Phase               | Status       |
+| ---------------------------- | ------------ |
+| Lexical Analysis             | ✅ Completed |
+| Syntax Analysis              | ✅ Completed |
+| Error Handling               | 🔄 Basic     |
+| Symbol Table                 | 📋 Planned   |
+| Type Checking                | 📋 Planned   |
+| Control Flow Parsing         | 📋 Planned   |
+| Intermediate Code Generation | 📋 Planned   |
+
+## Future Work
 
 Planned improvements include:
 
-Symbol Table implementation
+- Symbol Table implementation
+- Type checking
+- Variable value tracking
+- Conditional statements (if, else)
+- Loops (for, while, do-while)
+- Function declarations
+- Intermediate Code Generation
+- Code optimization
 
-Type checking
+## Author
 
-Variable value tracking
-
-Conditional statements (if, else)
-
-Loops (for, while, do-while)
-
-Function declarations
-
-Intermediate Code Generation
-
-Code optimization
-
-Author
-
-Nirob
+**Nirob**  
 Compiler Design Project
 
-License
+## License
 
 This project is intended for educational purposes as part of a compiler design course.
