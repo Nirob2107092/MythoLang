@@ -141,6 +141,26 @@ int lookupSymbol(char *name) {
     }
     return -1;
 }
+void updateSymbol(char *name, int value) {
+    int index = lookupSymbol(name);
+
+    if(index == -1) {
+        fprintf(outputFile, "Semantic Error: Variable '%s' not declared\n", name);
+        exit(1);
+    }
+
+    symbolTable[index].value = value;
+}
+int getSymbolValue(char *name) {
+    int index = lookupSymbol(name);
+
+    if(index == -1) {
+        fprintf(outputFile, "Semantic Error: Variable '%s' not declared\n", name);
+        exit(1);
+    }
+
+    return symbolTable[index].value;
+}
 void yyerror(const char *s) {
     fprintf(outputFile, "Syntax Error at line %d\n", yylineno);
 }
