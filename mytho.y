@@ -133,6 +133,14 @@ void insertSymbol(char *name, char *type) {
     symbolCount++;
 }
 
+int lookupSymbol(char *name) {
+    for(int i = 0; i < symbolCount; i++) {
+        if(strcmp(symbolTable[i].name, name) == 0) {
+            return i;
+        }
+    }
+    return -1;
+}
 void yyerror(const char *s) {
     fprintf(outputFile, "Syntax Error at line %d\n", yylineno);
 }
