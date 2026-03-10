@@ -72,7 +72,16 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#define MAX_SYMBOLS 100
 
+typedef struct {
+    char name[50];
+    char type[20];
+    int value;
+} Symbol;
+
+Symbol symbolTable[MAX_SYMBOLS];
+int symbolCount = 0;
 int yylex(void);
 void yyerror(const char *s);
 
@@ -80,7 +89,12 @@ extern int yylineno;
 extern FILE *yyin;
 FILE *outputFile;
 
-#line 84 "mytho.tab.c"
+void insertSymbol(char *name, char *type);
+void updateSymbol(char *name, int value);
+int getSymbolValue(char *name);
+int lookupSymbol(char *name);
+
+#line 98 "mytho.tab.c"
 
 # ifndef YY_CAST
 #  ifdef __cplusplus
@@ -578,11 +592,11 @@ static const yytype_int8 yytranslate[] =
 
 #if YYDEBUG
 /* YYRLINE[YYN] -- Source line where rule number YYN was defined.  */
-static const yytype_int8 yyrline[] =
+static const yytype_uint8 yyrline[] =
 {
-       0,    50,    50,    57,    61,    62,    66,    67,    68,    72,
-      73,    77,    81,    85,    86,    87,    88,    89,    90,    94,
-      95,    96,    97,   105,   106,   107,   108
+       0,    65,    65,    72,    76,    77,    81,    82,    83,    87,
+      92,   100,   107,   114,   115,   116,   117,   118,   119,   123,
+     124,   125,   126,   134,   135,   136,   137
 };
 #endif
 
@@ -1179,33 +1193,102 @@ yyreduce:
   switch (yyn)
     {
   case 2: /* program: main_function  */
-#line 51 "mytho.y"
+#line 66 "mytho.y"
       {
           fprintf(outputFile, "Parsing Successful\n");
       }
-#line 1187 "mytho.tab.c"
+#line 1201 "mytho.tab.c"
+    break;
+
+  case 9: /* declaration: type_spec IDENTIFIER  */
+#line 88 "mytho.y"
+      {
+          insertSymbol((yyvsp[0].sval), (yyvsp[-1].sval));
+      }
+#line 1209 "mytho.tab.c"
+    break;
+
+  case 10: /* declaration: type_spec IDENTIFIER ASSIGN expression  */
+#line 93 "mytho.y"
+      {
+          insertSymbol((yyvsp[-2].sval), (yyvsp[-3].sval));
+          updateSymbol((yyvsp[-2].sval), (yyvsp[0].ival));
+      }
+#line 1218 "mytho.tab.c"
+    break;
+
+  case 11: /* assignment: IDENTIFIER ASSIGN expression  */
+#line 101 "mytho.y"
+      {
+          updateSymbol((yyvsp[-2].sval), (yyvsp[0].ival));
+      }
+#line 1226 "mytho.tab.c"
+    break;
+
+  case 12: /* print_stmt: PRINT LPAREN expression RPAREN  */
+#line 108 "mytho.y"
+      {
+          fprintf(outputFile, "%d\n", (yyvsp[-1].ival));
+      }
+#line 1234 "mytho.tab.c"
+    break;
+
+  case 13: /* type_spec: KEYWORD_INT  */
+#line 114 "mytho.y"
+                       { (yyval.sval) = "int"; }
+#line 1240 "mytho.tab.c"
+    break;
+
+  case 14: /* type_spec: KEYWORD_FLOAT  */
+#line 115 "mytho.y"
+                       { (yyval.sval) = "float"; }
+#line 1246 "mytho.tab.c"
+    break;
+
+  case 15: /* type_spec: KEYWORD_DOUBLE  */
+#line 116 "mytho.y"
+                       { (yyval.sval) = "double"; }
+#line 1252 "mytho.tab.c"
+    break;
+
+  case 16: /* type_spec: KEYWORD_LONG  */
+#line 117 "mytho.y"
+                       { (yyval.sval) = "long"; }
+#line 1258 "mytho.tab.c"
+    break;
+
+  case 17: /* type_spec: KEYWORD_CHAR  */
+#line 118 "mytho.y"
+                       { (yyval.sval) = "char"; }
+#line 1264 "mytho.tab.c"
+    break;
+
+  case 18: /* type_spec: KEYWORD_BOOL  */
+#line 119 "mytho.y"
+                       { (yyval.sval) = "bool"; }
+#line 1270 "mytho.tab.c"
     break;
 
   case 19: /* expression: expression OP_ADD expression  */
-#line 94 "mytho.y"
+#line 123 "mytho.y"
                                      { (yyval.ival) = (yyvsp[-2].ival) + (yyvsp[0].ival); }
-#line 1193 "mytho.tab.c"
+#line 1276 "mytho.tab.c"
     break;
 
   case 20: /* expression: expression OP_SUB expression  */
-#line 95 "mytho.y"
+#line 124 "mytho.y"
                                      { (yyval.ival) = (yyvsp[-2].ival) - (yyvsp[0].ival); }
-#line 1199 "mytho.tab.c"
+#line 1282 "mytho.tab.c"
     break;
 
   case 21: /* expression: expression OP_MUL expression  */
-#line 96 "mytho.y"
+#line 125 "mytho.y"
                                      { (yyval.ival) = (yyvsp[-2].ival) * (yyvsp[0].ival); }
-#line 1205 "mytho.tab.c"
+#line 1288 "mytho.tab.c"
     break;
 
   case 22: /* expression: expression OP_DIV expression  */
-#line 97 "mytho.y"
+#line 126 "mytho.y"
                                      { 
                                         if ((yyvsp[0].ival) == 0) {
                                             yyerror("division by zero");
@@ -1214,35 +1297,35 @@ yyreduce:
                                             (yyval.ival) = (yyvsp[-2].ival) / (yyvsp[0].ival);
                                         }
                                       }
-#line 1218 "mytho.tab.c"
+#line 1301 "mytho.tab.c"
     break;
 
   case 23: /* expression: expression OP_MOD expression  */
-#line 105 "mytho.y"
+#line 134 "mytho.y"
                                      { (yyval.ival) = (yyvsp[-2].ival) % (yyvsp[0].ival); }
-#line 1224 "mytho.tab.c"
+#line 1307 "mytho.tab.c"
     break;
 
   case 24: /* expression: LPAREN expression RPAREN  */
-#line 106 "mytho.y"
+#line 135 "mytho.y"
                                      { (yyval.ival) = (yyvsp[-1].ival); }
-#line 1230 "mytho.tab.c"
+#line 1313 "mytho.tab.c"
     break;
 
   case 25: /* expression: INT_LITERAL  */
-#line 107 "mytho.y"
+#line 136 "mytho.y"
                                      { (yyval.ival) = (yyvsp[0].ival); }
-#line 1236 "mytho.tab.c"
+#line 1319 "mytho.tab.c"
     break;
 
   case 26: /* expression: IDENTIFIER  */
-#line 108 "mytho.y"
-                                     { (yyval.ival) = 0; }
-#line 1242 "mytho.tab.c"
+#line 137 "mytho.y"
+                 { (yyval.ival) = getSymbolValue((yyvsp[0].sval)); }
+#line 1325 "mytho.tab.c"
     break;
 
 
-#line 1246 "mytho.tab.c"
+#line 1329 "mytho.tab.c"
 
       default: break;
     }
@@ -1435,8 +1518,55 @@ yyreturnlab:
   return yyresult;
 }
 
-#line 111 "mytho.y"
+#line 140 "mytho.y"
 
+
+void insertSymbol(char *name, char *type) {
+    for(int i = 0; i < symbolCount; i++) {
+        if(strcmp(symbolTable[i].name, name) == 0) {
+            fprintf(outputFile, "Semantic Error: Variable '%s' already declared\n", name);
+            exit(1);
+        }
+    }
+
+    strcpy(symbolTable[symbolCount].name, name);
+    strcpy(symbolTable[symbolCount].type, type);
+    symbolTable[symbolCount].value = 0;
+    symbolCount++;
+}
+
+int lookupSymbol(char *name) {
+    for(int i = 0; i < symbolCount; i++) {
+        if(strcmp(symbolTable[i].name, name) == 0) {
+            return i;
+        }
+    }
+    return -1;
+}
+void updateSymbol(char *name, int value) {
+
+    int index = lookupSymbol(name);
+
+    if(index == -1) {
+        fprintf(outputFile,
+        "Semantic Error: Variable '%s' not declared\n", name);
+        exit(1);
+    }
+
+    symbolTable[index].value = value;
+}
+int getSymbolValue(char *name) {
+
+    int index = lookupSymbol(name);
+
+    if(index == -1) {
+        fprintf(outputFile,
+        "Semantic Error: Variable '%s' not declared\n", name);
+        exit(1);
+    }
+
+    return symbolTable[index].value;
+}
 
 void yyerror(const char *s) {
     fprintf(outputFile, "Syntax Error at line %d\n", yylineno);

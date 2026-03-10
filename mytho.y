@@ -18,6 +18,11 @@ void yyerror(const char *s);
 extern int yylineno;
 extern FILE *yyin;
 FILE *outputFile;
+
+void insertSymbol(char *name, char *type);
+void updateSymbol(char *name, int value);
+int getSymbolValue(char *name);
+int lookupSymbol(char *name);
 %}
 
 %union {
@@ -52,6 +57,7 @@ FILE *outputFile;
 
 /* expression value types */
 %type <ival> expression
+%type <sval> type_spec
 
 %%
 
@@ -79,25 +85,39 @@ statement
 
 declaration
     : type_spec IDENTIFIER
+      {
+          insertSymbol($2, $1);
+      }
+
     | type_spec IDENTIFIER ASSIGN expression
-    ;
+      {
+          insertSymbol($2, $1);
+          updateSymbol($2, $4);
+      }
+;
 
 assignment
     : IDENTIFIER ASSIGN expression
-    ;
+      {
+          updateSymbol($1, $3);
+      }
+;
 
 print_stmt
     : PRINT LPAREN expression RPAREN
-    ;
+      {
+          fprintf(outputFile, "%d\n", $3);
+      }
+;
 
 type_spec
-    : KEYWORD_INT
-    | KEYWORD_FLOAT
-    | KEYWORD_DOUBLE
-    | KEYWORD_LONG
-    | KEYWORD_CHAR
-    | KEYWORD_BOOL
-    ;
+    : KEYWORD_INT      { $$ = "int"; }
+    | KEYWORD_FLOAT    { $$ = "float"; }
+    | KEYWORD_DOUBLE   { $$ = "double"; }
+    | KEYWORD_LONG     { $$ = "long"; }
+    | KEYWORD_CHAR     { $$ = "char"; }
+    | KEYWORD_BOOL     { $$ = "bool"; }
+;
 
 expression
     : expression OP_ADD expression   { $$ = $1 + $3; }
@@ -114,7 +134,7 @@ expression
     | expression OP_MOD expression   { $$ = $1 % $3; }
     | LPAREN expression RPAREN       { $$ = $2; }
     | INT_LITERAL                    { $$ = $1; }
-    | IDENTIFIER                     { $$ = 0; } 
+    | IDENTIFIER { $$ = getSymbolValue($1); } 
     ;
 
 %%
@@ -142,25 +162,30 @@ int lookupSymbol(char *name) {
     return -1;
 }
 void updateSymbol(char *name, int value) {
+
     int index = lookupSymbol(name);
 
     if(index == -1) {
-        fprintf(outputFile, "Semantic Error: Variable '%s' not declared\n", name);
+        fprintf(outputFile,
+        "Semantic Error: Variable '%s' not declared\n", name);
         exit(1);
     }
 
     symbolTable[index].value = value;
 }
 int getSymbolValue(char *name) {
+
     int index = lookupSymbol(name);
 
     if(index == -1) {
-        fprintf(outputFile, "Semantic Error: Variable '%s' not declared\n", name);
+        fprintf(outputFile,
+        "Semantic Error: Variable '%s' not declared\n", name);
         exit(1);
     }
 
     return symbolTable[index].value;
 }
+
 void yyerror(const char *s) {
     fprintf(outputFile, "Syntax Error at line %d\n", yylineno);
 }

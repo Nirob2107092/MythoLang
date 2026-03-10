@@ -1,6 +1,3 @@
 Prometheus() {
-    zeus eggs .
-    zeus milk := 5 .
-    eggs := 3 add 2 .
-    proclaim(eggs) .
+    a := 5 .
 }
