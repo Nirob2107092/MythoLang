@@ -5,6 +5,8 @@
 #include "mytho_shared.h"
 
 #define MAX_SYMBOLS 100
+Function functionTable[MAX_FUNCTIONS];
+int functionCount = 0;
 
 typedef struct {
     char name[50];
@@ -59,6 +61,22 @@ StmtNode* appendStatement(StmtNode *list, StmtNode *stmt);
 ExprValue evalExprNode(ExprNode *expr);
 ExecResult execStmt(StmtNode *stmt);
 ExecResult execBlock(StmtNode *block);
+/* function support */
+void registerFunction(char *name, DataType returnType, char paramNames[][50], DataType paramTypes[], int paramCount, StmtNode *body);
+Function* lookupFunction(char *name);
+ExprValue callFunction(char *name, ExprNode *args);
+
+/* parameter / argument helpers */
+ExprNode* appendArgument(ExprNode *list, ExprNode *arg);
+
+/* return statement constructor */
+StmtNode* makeReturnNode(ExprNode *expr);
+
+/* function call expression constructor */
+ExprNode* makeFunctionCallNode(char *name, ExprNode *args);
+char tempParamNames[MAX_PARAMS][50];
+DataType tempParamTypes[MAX_PARAMS];
+int tempParamCount = 0;
 %}
 
 %union {
