@@ -343,6 +343,22 @@ expression
     | CHAR_LITERAL                   { $$ = makeCharLiteralNode($1); }
     | BOOL_LITERAL                   { $$ = makeBoolLiteralNode($1); }
     | IDENTIFIER                     { $$ = makeIdentifierNode($1); }
+    | IDENTIFIER LPAREN arg_list RPAREN   { $$ = makeFunctionCallNode($1, $3); }
+    ;
+    arg_list
+    : arg_list_nonempty { $$ = $1; }
+    | /* empty */       { $$ = NULL; }
+    ;
+
+arg_list_nonempty
+    : arg_list_nonempty COMMA expression
+      {
+          $$ = appendArgument($1, $3);
+      }
+    | expression
+      {
+          $$ = $1;
+      }
     ;
 
 %%
