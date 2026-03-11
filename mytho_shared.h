@@ -69,7 +69,8 @@ typedef enum
     STMT_FOR,
     STMT_DO_WHILE,
     STMT_BREAK,
-    STMT_CONTINUE
+    STMT_CONTINUE,
+    STMT_RETURN
 } StmtKind;
 
 struct StmtNode
