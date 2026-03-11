@@ -1,1 +1,2 @@
-Type Error: cannot assign double to int variable 'a'
+5
+Type Error: if condition must be boolean

@@ -1,4 +1,5 @@
 Prometheus() {
-    zeus a .
-    a := 3.5 .
+    omen(5) {
+        proclaim(5) .
+    }
 }

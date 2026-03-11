@@ -6,8 +6,6 @@
 
 #define MAX_SYMBOLS 100
 
-
-
 typedef struct {
     char name[50];
     DataType type;
@@ -35,6 +33,7 @@ const char* typeToString(DataType t);
 ExprValue evaluateRelational(ExprValue a, ExprValue b, int op);
 ExprValue evaluateLogical(ExprValue a, ExprValue b, int op);
 ExprValue evaluateNot(ExprValue a);
+void ensureBooleanCondition(ExprValue expr, const char *context);
 %}
 
 %union {
@@ -63,7 +62,6 @@ ExprValue evaluateNot(ExprValue a);
 %token <fval> FLOAT_LITERAL
 %token <cval> CHAR_LITERAL
 %token <sval> IDENTIFIER STRING_LITERAL
-
 
 %left OP_OR
 %left OP_AND
@@ -98,6 +96,12 @@ statement
     : declaration DOT
     | assignment DOT
     | print_stmt DOT
+    | if_stmt
+    | while_stmt
+    | for_stmt
+    | do_while_stmt
+    | BREAK DOT
+    | CONTINUE DOT
     ;
 
 declaration
@@ -132,6 +136,49 @@ print_stmt
               fprintf(outputFile, "%c\n", $3.val.cVal);
           else if ($3.type == TYPE_BOOL)
               fprintf(outputFile, "%s\n", $3.val.bVal ? "true" : "false");
+      }
+    ;
+
+/* ---------- STEP 4: control flow ---------- */
+
+if_stmt
+    : IF LPAREN expression RPAREN LBRACE statement_list RBRACE else_if_list else_part
+      {
+          ensureBooleanCondition($3, "if");
+      }
+    ;
+
+else_if_list
+    : else_if_list ELSE_IF LPAREN expression RPAREN LBRACE statement_list RBRACE
+      {
+          ensureBooleanCondition($4, "else if");
+      }
+    | /* empty */
+    ;
+
+else_part
+    : ELSE LBRACE statement_list RBRACE
+    | /* empty */
+    ;
+
+while_stmt
+    : WHILE LPAREN expression RPAREN LBRACE statement_list RBRACE
+      {
+          ensureBooleanCondition($3, "while");
+      }
+    ;
+
+for_stmt
+    : FOR LPAREN assignment COLON expression COLON assignment RPAREN LBRACE statement_list RBRACE
+      {
+          ensureBooleanCondition($5, "for");
+      }
+    ;
+
+do_while_stmt
+    : DO LBRACE statement_list RBRACE WHILE LPAREN expression RPAREN DOT
+      {
+          ensureBooleanCondition($7, "do-while");
       }
     ;
 
@@ -194,7 +241,15 @@ expression
                                         $$ = getSymbolValue($1);
                                       }
     ;
+
 %%
+
+void ensureBooleanCondition(ExprValue expr, const char *context) {
+    if (expr.type != TYPE_BOOL) {
+        fprintf(outputFile, "Type Error: %s condition must be boolean\n", context);
+        exit(1);
+    }
+}
 
 const char* typeToString(DataType t) {
     switch(t) {
@@ -218,7 +273,6 @@ void insertSymbol(char *name, DataType type) {
     strcpy(symbolTable[symbolCount].name, name);
     symbolTable[symbolCount].type = type;
 
-    /* default initialize */
     if (type == TYPE_INT) symbolTable[symbolCount].val.iVal = 0;
     else if (type == TYPE_FLOAT) symbolTable[symbolCount].val.fVal = 0.0f;
     else if (type == TYPE_DOUBLE) symbolTable[symbolCount].val.dVal = 0.0;
@@ -240,7 +294,6 @@ int lookupSymbol(char *name) {
 int isAssignable(DataType target, DataType source) {
     if (target == source) return 1;
 
-    /* widening conversions */
     if (target == TYPE_FLOAT && source == TYPE_INT) return 1;
     if (target == TYPE_DOUBLE && source == TYPE_INT) return 1;
     if (target == TYPE_DOUBLE && source == TYPE_FLOAT) return 1;
@@ -307,14 +360,12 @@ ExprValue getSymbolValue(char *name) {
 ExprValue evaluateArithmetic(ExprValue a, ExprValue b, int op) {
     ExprValue result;
 
-    /* char and bool arithmetic not allowed for now */
     if (a.type == TYPE_CHAR || a.type == TYPE_BOOL ||
         b.type == TYPE_CHAR || b.type == TYPE_BOOL) {
         fprintf(outputFile, "Type Error: invalid arithmetic operation\n");
         exit(1);
     }
 
-    /* promote to double if either is double */
     if (a.type == TYPE_DOUBLE || b.type == TYPE_DOUBLE) {
         double x = (a.type == TYPE_DOUBLE) ? a.val.dVal :
                    (a.type == TYPE_FLOAT)  ? a.val.fVal :
@@ -338,7 +389,6 @@ ExprValue evaluateArithmetic(ExprValue a, ExprValue b, int op) {
             }
         }
     }
-    /* promote to float if either is float */
     else if (a.type == TYPE_FLOAT || b.type == TYPE_FLOAT) {
         float x = (a.type == TYPE_FLOAT) ? a.val.fVal : a.val.iVal;
         float y = (b.type == TYPE_FLOAT) ? b.val.fVal : b.val.iVal;
@@ -357,7 +407,6 @@ ExprValue evaluateArithmetic(ExprValue a, ExprValue b, int op) {
             }
         }
     }
-    /* otherwise int */
     else {
         int x = a.val.iVal;
         int y = b.val.iVal;
@@ -379,11 +428,11 @@ ExprValue evaluateArithmetic(ExprValue a, ExprValue b, int op) {
 
     return result;
 }
+
 ExprValue evaluateRelational(ExprValue a, ExprValue b, int op) {
     ExprValue result;
     result.type = TYPE_BOOL;
 
-    /* equality / inequality for bool allowed */
     if ((a.type == TYPE_BOOL || b.type == TYPE_BOOL)) {
         if (a.type != TYPE_BOOL || b.type != TYPE_BOOL) {
             fprintf(outputFile, "Type Error: cannot compare bool with non-bool\n");
@@ -400,7 +449,6 @@ ExprValue evaluateRelational(ExprValue a, ExprValue b, int op) {
         return result;
     }
 
-    /* char comparisons allowed */
     if (a.type == TYPE_CHAR && b.type == TYPE_CHAR) {
         char x = a.val.cVal;
         char y = b.val.cVal;
@@ -415,13 +463,11 @@ ExprValue evaluateRelational(ExprValue a, ExprValue b, int op) {
         return result;
     }
 
-    /* char with non-char not allowed */
     if (a.type == TYPE_CHAR || b.type == TYPE_CHAR) {
         fprintf(outputFile, "Type Error: cannot compare char with non-char\n");
         exit(1);
     }
 
-    /* numeric comparisons */
     double x = (a.type == TYPE_DOUBLE) ? a.val.dVal :
                (a.type == TYPE_FLOAT)  ? a.val.fVal :
                                          a.val.iVal;
@@ -439,6 +485,7 @@ ExprValue evaluateRelational(ExprValue a, ExprValue b, int op) {
 
     return result;
 }
+
 ExprValue evaluateLogical(ExprValue a, ExprValue b, int op) {
     ExprValue result;
     result.type = TYPE_BOOL;
@@ -448,11 +495,12 @@ ExprValue evaluateLogical(ExprValue a, ExprValue b, int op) {
         exit(1);
     }
 
-    if (op == 1) result.val.bVal = a.val.bVal && b.val.bVal;   /* AND */
-    else if (op == 2) result.val.bVal = a.val.bVal || b.val.bVal; /* OR */
+    if (op == 1) result.val.bVal = a.val.bVal && b.val.bVal;
+    else if (op == 2) result.val.bVal = a.val.bVal || b.val.bVal;
 
     return result;
 }
+
 ExprValue evaluateNot(ExprValue a) {
     ExprValue result;
     result.type = TYPE_BOOL;
