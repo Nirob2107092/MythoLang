@@ -114,6 +114,10 @@ int tempParamCount = 0;
 %left OP_MUL OP_DIV OP_MOD
 %right OP_POW
 
+%type <stmtNode> function_def
+%type <stmtNode> function_list
+%type <exprNode> arg_list
+%type <exprNode> arg_list_nonempty
 %type <exprNode> expression
 %type <stmtNode> statement
 %type <stmtNode> statement_list
@@ -132,9 +136,19 @@ int tempParamCount = 0;
 %%
 
 program
-    : main_function
+    : function_list main_function
       {
-          programRoot = $1;
+          programRoot = $2;
+      }
+    ;
+function_list
+    : function_list function_def
+      {
+          $$ = NULL;
+      }
+    | /* empty */
+      {
+          $$ = NULL;
       }
     ;
 
@@ -142,6 +156,18 @@ main_function
     : MAIN LPAREN RPAREN LBRACE statement_list RBRACE
       {
           $$ = $5;
+      }
+    ;
+
+function_def
+    : FUNCTION IDENTIFIER LPAREN
+      {
+          tempParamCount = 0;
+      }
+      param_list RPAREN RETTYPE type_spec LBRACE statement_list RBRACE
+      {
+          registerFunction($2, $8, tempParamNames, tempParamTypes, tempParamCount, $10);
+          $$ = NULL;
       }
     ;
 
