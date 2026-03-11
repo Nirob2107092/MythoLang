@@ -33,7 +33,32 @@ const char* typeToString(DataType t);
 ExprValue evaluateRelational(ExprValue a, ExprValue b, int op);
 ExprValue evaluateLogical(ExprValue a, ExprValue b, int op);
 ExprValue evaluateNot(ExprValue a);
-void ensureBooleanCondition(ExprValue expr, const char *context);
+StmtNode *programRoot = NULL;
+
+/* AST constructors */
+ExprNode* makeIntLiteralNode(int v);
+ExprNode* makeFloatLiteralNode(double v);
+ExprNode* makeCharLiteralNode(char v);
+ExprNode* makeBoolLiteralNode(int v);
+ExprNode* makeIdentifierNode(char *name);
+ExprNode* makeBinaryExprNode(const char *op, ExprNode *left, ExprNode *right);
+ExprNode* makeUnaryExprNode(const char *op, ExprNode *expr);
+
+StmtNode* makeDeclNode(DataType type, char *name, ExprNode *expr);
+StmtNode* makeAssignNode(char *name, ExprNode *expr);
+StmtNode* makePrintNode(ExprNode *expr);
+StmtNode* makeIfNode(ExprNode *cond, StmtNode *thenBlock, StmtNode *elseBlock);
+StmtNode* makeWhileNode(ExprNode *cond, StmtNode *body);
+StmtNode* makeForNode(StmtNode *initStmt, ExprNode *cond, StmtNode *updateStmt, StmtNode *body);
+StmtNode* makeDoWhileNode(StmtNode *body, ExprNode *cond);
+StmtNode* makeBreakNode(void);
+StmtNode* makeContinueNode(void);
+StmtNode* appendStatement(StmtNode *list, StmtNode *stmt);
+
+/* runtime */
+ExprValue evalExprNode(ExprNode *expr);
+ExecResult execStmt(StmtNode *stmt);
+ExecResult execBlock(StmtNode *block);
 %}
 
 %union {
@@ -42,9 +67,9 @@ void ensureBooleanCondition(ExprValue expr, const char *context);
     char cval;
     char* sval;
     DataType dtype;
-    ExprValue expr;
+    ExprNode* exprNode;
+    StmtNode* stmtNode;
 }
-
 /* tokens from lexer */
 %token KEYWORD_INT KEYWORD_FLOAT KEYWORD_DOUBLE KEYWORD_LONG KEYWORD_CHAR KEYWORD_BOOL KEYWORD_VOID
 %token IF ELSE_IF ELSE FOR WHILE DO SWITCH CASE DEFAULT BREAK CONTINUE RETURN
@@ -71,121 +96,155 @@ void ensureBooleanCondition(ExprValue expr, const char *context);
 %left OP_MUL OP_DIV OP_MOD
 %right OP_POW
 
-%type <expr> expression
+%type <exprNode> expression
+%type <stmtNode> statement
+%type <stmtNode> statement_list
+%type <stmtNode> declaration
+%type <stmtNode> assignment
+%type <stmtNode> print_stmt
+%type <stmtNode> if_stmt
+%type <stmtNode> while_stmt
+%type <stmtNode> for_stmt
+%type <stmtNode> do_while_stmt
+%type <stmtNode> else_part
+%type <stmtNode> else_if_list
 %type <dtype> type_spec
+%type <stmtNode> main_function
 
 %%
 
 program
     : main_function
       {
-          fprintf(outputFile, "Parsing Successful\n");
+          programRoot = $1;
       }
     ;
 
 main_function
     : MAIN LPAREN RPAREN LBRACE statement_list RBRACE
+      {
+          $$ = $5;
+      }
     ;
 
 statement_list
     : statement_list statement
+      {
+          $$ = appendStatement($1, $2);
+      }
     | /* empty */
+      {
+          $$ = NULL;
+      }
     ;
 
 statement
-    : declaration DOT
-    | assignment DOT
-    | print_stmt DOT
-    | if_stmt
-    | while_stmt
-    | for_stmt
-    | do_while_stmt
-    | BREAK DOT
-    | CONTINUE DOT
+    : declaration DOT      { $$ = $1; }
+    | assignment DOT       { $$ = $1; }
+    | print_stmt DOT       { $$ = $1; }
+    | if_stmt              { $$ = $1; }
+    | while_stmt           { $$ = $1; }
+    | for_stmt             { $$ = $1; }
+    | do_while_stmt        { $$ = $1; }
+    | BREAK DOT            { $$ = makeBreakNode(); }
+    | CONTINUE DOT         { $$ = makeContinueNode(); }
     ;
 
 declaration
     : type_spec IDENTIFIER
       {
-          insertSymbol($2, $1);
+          $$ = makeDeclNode($1, $2, NULL);
       }
     | type_spec IDENTIFIER ASSIGN expression
       {
-          insertSymbol($2, $1);
-          updateSymbol($2, $4);
+          $$ = makeDeclNode($1, $2, $4);
       }
     ;
 
 assignment
     : IDENTIFIER ASSIGN expression
       {
-          updateSymbol($1, $3);
+          $$ = makeAssignNode($1, $3);
       }
     ;
 
 print_stmt
     : PRINT LPAREN expression RPAREN
       {
-          if ($3.type == TYPE_INT)
-              fprintf(outputFile, "%d\n", $3.val.iVal);
-          else if ($3.type == TYPE_FLOAT)
-              fprintf(outputFile, "%f\n", $3.val.fVal);
-          else if ($3.type == TYPE_DOUBLE)
-              fprintf(outputFile, "%lf\n", $3.val.dVal);
-          else if ($3.type == TYPE_CHAR)
-              fprintf(outputFile, "%c\n", $3.val.cVal);
-          else if ($3.type == TYPE_BOOL)
-              fprintf(outputFile, "%s\n", $3.val.bVal ? "true" : "false");
+          $$ = makePrintNode($3);
       }
     ;
 
 /* ---------- STEP 4: control flow ---------- */
 
 if_stmt
-    : IF LPAREN expression RPAREN
+    : IF LPAREN expression RPAREN LBRACE statement_list RBRACE else_if_list else_part
       {
-          ensureBooleanCondition($3, "if");
-      }
-      LBRACE statement_list RBRACE else_if_list else_part
-    ;
+          StmtNode *elseChain = $8;
+          if (elseChain == NULL)
+              elseChain = $9;
+          else {
+              StmtNode *tail = elseChain;
+              while (tail->elseBlock != NULL)
+                  tail = tail->elseBlock;
+              tail->elseBlock = $9;
+          }
 
-else_if_list
-    : else_if_list ELSE_IF LPAREN expression RPAREN
-      {
-          ensureBooleanCondition($4, "else if");
+          $$ = makeIfNode($3, $6, elseChain);
       }
-      LBRACE statement_list RBRACE
+    ;
+else_if_list
+    : else_if_list ELSE_IF LPAREN expression RPAREN LBRACE statement_list RBRACE
+      {
+          StmtNode *node = makeIfNode($4, $7, NULL);
+
+          if ($1 == NULL) $$ = node;
+          else {
+              StmtNode *tail = $1;
+              while (tail->elseBlock != NULL)
+                  tail = tail->elseBlock;
+              tail->elseBlock = node;
+              $$ = $1;
+          }
+      }
     | /* empty */
+      {
+          $$ = NULL;
+      }
     ;
 
 else_part
     : ELSE LBRACE statement_list RBRACE
+      {
+          $$ = $3;
+      }
     | /* empty */
+      {
+          $$ = NULL;
+      }
     ;
 
 while_stmt
-    : WHILE LPAREN expression RPAREN
+    : WHILE LPAREN expression RPAREN LBRACE statement_list RBRACE
       {
-          ensureBooleanCondition($3, "while");
+          $$ = makeWhileNode($3, $6);
       }
-      LBRACE statement_list RBRACE
     ;
 
 for_stmt
-    : FOR LPAREN assignment COLON expression COLON assignment RPAREN
+    : FOR LPAREN assignment COLON expression COLON assignment RPAREN LBRACE statement_list RBRACE
       {
-          ensureBooleanCondition($5, "for");
+          $$ = makeForNode($3, $5, $7, $10);
       }
-      LBRACE statement_list RBRACE
     ;
 
 do_while_stmt
-    : DO LBRACE statement_list RBRACE WHILE LPAREN expression RPAREN
+    : DO LBRACE statement_list RBRACE WHILE LPAREN expression RPAREN DOT
       {
-          ensureBooleanCondition($7, "do-while");
+          $$ = makeDoWhileNode($3, $7);
       }
-      DOT
     ;
+
 type_spec
     : KEYWORD_INT      { $$ = TYPE_INT; }
     | KEYWORD_FLOAT    { $$ = TYPE_FLOAT; }
@@ -196,63 +255,231 @@ type_spec
     ;
 
 expression
-    : expression OP_ADD expression   { $$ = evaluateArithmetic($1, $3, 1); }
-    | expression OP_SUB expression   { $$ = evaluateArithmetic($1, $3, 2); }
-    | expression OP_MUL expression   { $$ = evaluateArithmetic($1, $3, 3); }
-    | expression OP_DIV expression   { $$ = evaluateArithmetic($1, $3, 4); }
+    : expression OP_ADD expression   { $$ = makeBinaryExprNode("add", $1, $3); }
+    | expression OP_SUB expression   { $$ = makeBinaryExprNode("sub", $1, $3); }
+    | expression OP_MUL expression   { $$ = makeBinaryExprNode("mul", $1, $3); }
+    | expression OP_DIV expression   { $$ = makeBinaryExprNode("div", $1, $3); }
+    | expression OP_MOD expression   { $$ = makeBinaryExprNode("mod", $1, $3); }
 
-    | expression OP_MOD expression   {
-                                        if ($1.type != TYPE_INT || $3.type != TYPE_INT) {
-                                            fprintf(outputFile, "Type Error: modulus only allowed for int\n");
-                                            exit(1);
-                                        }
-                                        $$.type = TYPE_INT;
-                                        $$.val.iVal = $1.val.iVal % $3.val.iVal;
-                                      }
+    | expression OP_LT expression    { $$ = makeBinaryExprNode("lt", $1, $3); }
+    | expression OP_GT expression    { $$ = makeBinaryExprNode("gt", $1, $3); }
+    | expression OP_LE expression    { $$ = makeBinaryExprNode("le", $1, $3); }
+    | expression OP_GE expression    { $$ = makeBinaryExprNode("ge", $1, $3); }
+    | expression OP_EQ expression    { $$ = makeBinaryExprNode("eq", $1, $3); }
+    | expression OP_NE expression    { $$ = makeBinaryExprNode("ne", $1, $3); }
 
-    /* relational */
-    | expression OP_LT expression    { $$ = evaluateRelational($1, $3, 1); }
-    | expression OP_GT expression    { $$ = evaluateRelational($1, $3, 2); }
-    | expression OP_LE expression    { $$ = evaluateRelational($1, $3, 3); }
-    | expression OP_GE expression    { $$ = evaluateRelational($1, $3, 4); }
-    | expression OP_EQ expression    { $$ = evaluateRelational($1, $3, 5); }
-    | expression OP_NE expression    { $$ = evaluateRelational($1, $3, 6); }
-
-    /* logical */
-    | expression OP_AND expression   { $$ = evaluateLogical($1, $3, 1); }
-    | expression OP_OR expression    { $$ = evaluateLogical($1, $3, 2); }
-    | OP_NOT expression              { $$ = evaluateNot($2); }
+    | expression OP_AND expression   { $$ = makeBinaryExprNode("and", $1, $3); }
+    | expression OP_OR expression    { $$ = makeBinaryExprNode("or", $1, $3); }
+    | OP_NOT expression              { $$ = makeUnaryExprNode("not", $2); }
 
     | LPAREN expression RPAREN       { $$ = $2; }
 
-    | INT_LITERAL                    {
-                                        $$.type = TYPE_INT;
-                                        $$.val.iVal = $1;
-                                      }
-    | FLOAT_LITERAL                  {
-                                        $$.type = TYPE_DOUBLE;
-                                        $$.val.dVal = $1;
-                                      }
-    | CHAR_LITERAL                   {
-                                        $$.type = TYPE_CHAR;
-                                        $$.val.cVal = $1;
-                                      }
-    | BOOL_LITERAL                   {
-                                        $$.type = TYPE_BOOL;
-                                        $$.val.bVal = $1;
-                                      }
-    | IDENTIFIER                     {
-                                        $$ = getSymbolValue($1);
-                                      }
+    | INT_LITERAL                    { $$ = makeIntLiteralNode($1); }
+    | FLOAT_LITERAL                  { $$ = makeFloatLiteralNode($1); }
+    | CHAR_LITERAL                   { $$ = makeCharLiteralNode($1); }
+    | BOOL_LITERAL                   { $$ = makeBoolLiteralNode($1); }
+    | IDENTIFIER                     { $$ = makeIdentifierNode($1); }
     ;
 
 %%
 
-void ensureBooleanCondition(ExprValue expr, const char *context) {
-    if (expr.type != TYPE_BOOL) {
-        fprintf(outputFile, "Type Error: %s condition must be boolean\n", context);
-        exit(1);
-    }
+ExprNode* makeIntLiteralNode(int v) {
+    ExprNode *node = malloc(sizeof(ExprNode));
+    node->kind = EXPR_LITERAL;
+    node->type = TYPE_INT;
+    node->literal.iVal = v;
+    node->name = NULL;
+    node->left = node->right = NULL;
+    node->op[0] = '\0';
+    return node;
+}
+
+ExprNode* makeFloatLiteralNode(double v) {
+    ExprNode *node = malloc(sizeof(ExprNode));
+    node->kind = EXPR_LITERAL;
+    node->type = TYPE_FLOAT;
+    node->literal.dVal = v;
+    node->name = NULL;
+    node->left = node->right = NULL;
+    node->op[0] = '\0';
+    return node;
+}
+
+ExprNode* makeCharLiteralNode(char v) {
+    ExprNode *node = malloc(sizeof(ExprNode));
+    node->kind = EXPR_LITERAL;
+    node->type = TYPE_CHAR;
+    node->literal.cVal = v;
+    node->name = NULL;
+    node->left = node->right = NULL;
+    node->op[0] = '\0';
+    return node;
+}
+
+ExprNode* makeBoolLiteralNode(int v) {
+    ExprNode *node = malloc(sizeof(ExprNode));
+    node->kind = EXPR_LITERAL;
+    node->type = TYPE_BOOL;
+    node->literal.bVal = v;
+    node->name = NULL;
+    node->left = node->right = NULL;
+    node->op[0] = '\0';
+    return node;
+}
+
+ExprNode* makeIdentifierNode(char *name) {
+    ExprNode *node = malloc(sizeof(ExprNode));
+    node->kind = EXPR_IDENTIFIER;
+    node->type = TYPE_INVALID;
+    node->name = strdup(name);
+    node->left = node->right = NULL;
+    node->op[0] = '\0';
+    return node;
+}
+
+ExprNode* makeBinaryExprNode(const char *op, ExprNode *left, ExprNode *right) {
+    ExprNode *node = malloc(sizeof(ExprNode));
+    node->kind = EXPR_BINARY;
+    node->type = TYPE_INVALID;
+    strcpy(node->op, op);
+    node->left = left;
+    node->right = right;
+    node->name = NULL;
+    return node;
+}
+
+ExprNode* makeUnaryExprNode(const char *op, ExprNode *expr) {
+    ExprNode *node = malloc(sizeof(ExprNode));
+    node->kind = EXPR_UNARY;
+    node->type = TYPE_INVALID;
+    strcpy(node->op, op);
+    node->left = expr;
+    node->right = NULL;
+    node->name = NULL;
+    return node;
+}
+
+StmtNode* makeDeclNode(DataType type, char *name, ExprNode *expr) {
+    StmtNode *node = malloc(sizeof(StmtNode));
+    node->kind = STMT_DECL;
+    node->declaredType = type;
+    node->name = strdup(name);
+    node->expr = expr;
+    node->condition = NULL;
+    node->initStmt = node->updateStmt = NULL;
+    node->body = node->thenBlock = node->elseBlock = NULL;
+    node->next = NULL;
+    return node;
+}
+
+StmtNode* makeAssignNode(char *name, ExprNode *expr) {
+    StmtNode *node = malloc(sizeof(StmtNode));
+    node->kind = STMT_ASSIGN;
+    node->name = strdup(name);
+    node->expr = expr;
+    node->condition = NULL;
+    node->initStmt = node->updateStmt = NULL;
+    node->body = node->thenBlock = node->elseBlock = NULL;
+    node->next = NULL;
+    return node;
+}
+
+StmtNode* makePrintNode(ExprNode *expr) {
+    StmtNode *node = malloc(sizeof(StmtNode));
+    node->kind = STMT_PRINT;
+    node->expr = expr;
+    node->name = NULL;
+    node->condition = NULL;
+    node->initStmt = node->updateStmt = NULL;
+    node->body = node->thenBlock = node->elseBlock = NULL;
+    node->next = NULL;
+    return node;
+}
+
+StmtNode* makeIfNode(ExprNode *cond, StmtNode *thenBlock, StmtNode *elseBlock) {
+    StmtNode *node = malloc(sizeof(StmtNode));
+    node->kind = STMT_IF;
+    node->condition = cond;
+    node->thenBlock = thenBlock;
+    node->elseBlock = elseBlock;
+    node->name = NULL;
+    node->expr = NULL;
+    node->initStmt = node->updateStmt = NULL;
+    node->body = NULL;
+    node->next = NULL;
+    return node;
+}
+
+StmtNode* makeWhileNode(ExprNode *cond, StmtNode *body) {
+    StmtNode *node = malloc(sizeof(StmtNode));
+    node->kind = STMT_WHILE;
+    node->condition = cond;
+    node->body = body;
+    node->name = NULL;
+    node->expr = NULL;
+    node->initStmt = node->updateStmt = NULL;
+    node->thenBlock = node->elseBlock = NULL;
+    node->next = NULL;
+    return node;
+}
+
+StmtNode* makeForNode(StmtNode *initStmt, ExprNode *cond, StmtNode *updateStmt, StmtNode *body) {
+    StmtNode *node = malloc(sizeof(StmtNode));
+    node->kind = STMT_FOR;
+    node->initStmt = initStmt;
+    node->condition = cond;
+    node->updateStmt = updateStmt;
+    node->body = body;
+    node->name = NULL;
+    node->expr = NULL;
+    node->thenBlock = node->elseBlock = NULL;
+    node->next = NULL;
+    return node;
+}
+
+StmtNode* makeDoWhileNode(StmtNode *body, ExprNode *cond) {
+    StmtNode *node = malloc(sizeof(StmtNode));
+    node->kind = STMT_DO_WHILE;
+    node->body = body;
+    node->condition = cond;
+    node->name = NULL;
+    node->expr = NULL;
+    node->initStmt = node->updateStmt = NULL;
+    node->thenBlock = node->elseBlock = NULL;
+    node->next = NULL;
+    return node;
+}
+
+StmtNode* makeBreakNode(void) {
+    StmtNode *node = malloc(sizeof(StmtNode));
+    node->kind = STMT_BREAK;
+    node->name = NULL;
+    node->expr = NULL;
+    node->condition = NULL;
+    node->initStmt = node->updateStmt = NULL;
+    node->body = node->thenBlock = node->elseBlock = NULL;
+    node->next = NULL;
+    return node;
+}
+
+StmtNode* makeContinueNode(void) {
+    StmtNode *node = malloc(sizeof(StmtNode));
+    node->kind = STMT_CONTINUE;
+    node->name = NULL;
+    node->expr = NULL;
+    node->condition = NULL;
+    node->initStmt = node->updateStmt = NULL;
+    node->body = node->thenBlock = node->elseBlock = NULL;
+    node->next = NULL;
+    return node;
+}
+
+StmtNode* appendStatement(StmtNode *list, StmtNode *stmt) {
+    if (list == NULL) return stmt;
+    StmtNode *cur = list;
+    while (cur->next != NULL) cur = cur->next;
+    cur->next = stmt;
+    return list;
 }
 
 const char* typeToString(DataType t) {
@@ -505,6 +732,200 @@ ExprValue evaluateLogical(ExprValue a, ExprValue b, int op) {
     return result;
 }
 
+ExprValue evalExprNode(ExprNode *expr) {
+    ExprValue left, right;
+
+    if (expr->kind == EXPR_LITERAL) {
+        ExprValue result;
+        result.type = expr->type;
+        result.val = expr->literal;
+        return result;
+    }
+
+    if (expr->kind == EXPR_IDENTIFIER) {
+        return getSymbolValue(expr->name);
+    }
+
+    if (expr->kind == EXPR_UNARY) {
+        left = evalExprNode(expr->left);
+        if (strcmp(expr->op, "not") == 0)
+            return evaluateNot(left);
+    }
+
+    if (expr->kind == EXPR_BINARY) {
+        left = evalExprNode(expr->left);
+        right = evalExprNode(expr->right);
+
+        if (strcmp(expr->op, "add") == 0) return evaluateArithmetic(left, right, 1);
+        if (strcmp(expr->op, "sub") == 0) return evaluateArithmetic(left, right, 2);
+        if (strcmp(expr->op, "mul") == 0) return evaluateArithmetic(left, right, 3);
+        if (strcmp(expr->op, "div") == 0) return evaluateArithmetic(left, right, 4);
+
+        if (strcmp(expr->op, "mod") == 0) {
+            ExprValue result;
+            if (left.type != TYPE_INT || right.type != TYPE_INT) {
+                fprintf(outputFile, "Type Error: modulus only allowed for int\n");
+                exit(1);
+            }
+            result.type = TYPE_INT;
+            result.val.iVal = left.val.iVal % right.val.iVal;
+            return result;
+        }
+
+        if (strcmp(expr->op, "lt") == 0) return evaluateRelational(left, right, 1);
+        if (strcmp(expr->op, "gt") == 0) return evaluateRelational(left, right, 2);
+        if (strcmp(expr->op, "le") == 0) return evaluateRelational(left, right, 3);
+        if (strcmp(expr->op, "ge") == 0) return evaluateRelational(left, right, 4);
+        if (strcmp(expr->op, "eq") == 0) return evaluateRelational(left, right, 5);
+        if (strcmp(expr->op, "ne") == 0) return evaluateRelational(left, right, 6);
+
+        if (strcmp(expr->op, "and") == 0) return evaluateLogical(left, right, 1);
+        if (strcmp(expr->op, "or") == 0) return evaluateLogical(left, right, 2);
+    }
+
+    fprintf(outputFile, "Runtime Error: invalid expression\n");
+    exit(1);
+}
+
+ExecResult execStmt(StmtNode *stmt) {
+    ExecResult result;
+    result.status = EXEC_NORMAL;
+
+    if (stmt == NULL) return result;
+
+    switch (stmt->kind) {
+        case STMT_DECL: {
+            insertSymbol(stmt->name, stmt->declaredType);
+            if (stmt->expr != NULL) {
+                ExprValue val = evalExprNode(stmt->expr);
+                updateSymbol(stmt->name, val);
+            }
+            break;
+        }
+
+        case STMT_ASSIGN: {
+            ExprValue val = evalExprNode(stmt->expr);
+            updateSymbol(stmt->name, val);
+            break;
+        }
+
+        case STMT_PRINT: {
+            ExprValue val = evalExprNode(stmt->expr);
+            if (val.type == TYPE_INT)
+                fprintf(outputFile, "%d\n", val.val.iVal);
+            else if (val.type == TYPE_FLOAT)
+                fprintf(outputFile, "%f\n", val.val.fVal);
+            else if (val.type == TYPE_DOUBLE)
+                fprintf(outputFile, "%lf\n", val.val.dVal);
+            else if (val.type == TYPE_CHAR)
+                fprintf(outputFile, "%c\n", val.val.cVal);
+            else if (val.type == TYPE_BOOL)
+                fprintf(outputFile, "%s\n", val.val.bVal ? "true" : "false");
+            break;
+        }
+
+        case STMT_IF: {
+            ExprValue cond = evalExprNode(stmt->condition);
+            if (cond.type != TYPE_BOOL) {
+                fprintf(outputFile, "Type Error: if condition must be boolean\n");
+                exit(1);
+            }
+
+            if (cond.val.bVal)
+                return execBlock(stmt->thenBlock);
+            else if (stmt->elseBlock != NULL)
+                return execBlock(stmt->elseBlock);
+            break;
+        }
+
+        case STMT_WHILE: {
+            while (1) {
+                ExprValue cond = evalExprNode(stmt->condition);
+                if (cond.type != TYPE_BOOL) {
+                    fprintf(outputFile, "Type Error: while condition must be boolean\n");
+                    exit(1);
+                }
+                if (!cond.val.bVal) break;
+
+                result = execBlock(stmt->body);
+
+                if (result.status == EXEC_BREAK) {
+                    result.status = EXEC_NORMAL;
+                    break;
+                }
+                if (result.status == EXEC_CONTINUE) {
+                    result.status = EXEC_NORMAL;
+                    continue;
+                }
+            }
+            break;
+        }
+
+        case STMT_FOR: {
+            if (stmt->initStmt) execStmt(stmt->initStmt);
+
+            while (1) {
+                ExprValue cond = evalExprNode(stmt->condition);
+                if (cond.type != TYPE_BOOL) {
+                    fprintf(outputFile, "Type Error: for condition must be boolean\n");
+                    exit(1);
+                }
+                if (!cond.val.bVal) break;
+
+                result = execBlock(stmt->body);
+
+                if (result.status == EXEC_BREAK) {
+                    result.status = EXEC_NORMAL;
+                    break;
+                }
+
+                if (stmt->updateStmt) execStmt(stmt->updateStmt);
+
+                if (result.status == EXEC_CONTINUE) {
+                    result.status = EXEC_NORMAL;
+                    continue;
+                }
+            }
+            break;
+        }
+
+        case STMT_DO_WHILE: {
+            do {
+                result = execBlock(stmt->body);
+
+                if (result.status == EXEC_BREAK) {
+                    result.status = EXEC_NORMAL;
+                    break;
+                }
+
+                ExprValue cond = evalExprNode(stmt->condition);
+                if (cond.type != TYPE_BOOL) {
+                    fprintf(outputFile, "Type Error: do-while condition must be boolean\n");
+                    exit(1);
+                }
+
+                if (result.status == EXEC_CONTINUE)
+                    result.status = EXEC_NORMAL;
+
+                if (!cond.val.bVal)
+                    break;
+
+            } while (1);
+            break;
+        }
+
+        case STMT_BREAK:
+            result.status = EXEC_BREAK;
+            return result;
+
+        case STMT_CONTINUE:
+            result.status = EXEC_CONTINUE;
+            return result;
+    }
+
+    return result;
+}
+
 ExprValue evaluateNot(ExprValue a) {
     ExprValue result;
     result.type = TYPE_BOOL;
@@ -515,6 +936,20 @@ ExprValue evaluateNot(ExprValue a) {
     }
 
     result.val.bVal = !a.val.bVal;
+    return result;
+}
+ExecResult execBlock(StmtNode *block) {
+    ExecResult result;
+    result.status = EXEC_NORMAL;
+
+    StmtNode *cur = block;
+    while (cur != NULL) {
+        result = execStmt(cur);
+        if (result.status != EXEC_NORMAL)
+            return result;
+        cur = cur->next;
+    }
+
     return result;
 }
 
@@ -537,6 +972,12 @@ int main(void) {
     }
 
     yyparse();
+
+    /* EXECUTE AST AFTER PARSING */
+    if (programRoot != NULL) {
+        execBlock(programRoot);
+        fprintf(outputFile, "Parsing Successful\n");
+    }
 
     fclose(yyin);
     fclose(outputFile);

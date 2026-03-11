@@ -129,16 +129,17 @@ extern int yydebug;
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 union YYSTYPE
 {
-#line 39 "mytho.y"
+#line 64 "mytho.y"
 
     int ival;
     double fval;
     char cval;
     char* sval;
     DataType dtype;
-    ExprValue expr;
+    ExprNode* exprNode;
+    StmtNode* stmtNode;
 
-#line 142 "mytho.tab.h"
+#line 143 "mytho.tab.h"
 
 };
 typedef union YYSTYPE YYSTYPE;

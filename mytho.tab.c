@@ -103,9 +103,34 @@ const char* typeToString(DataType t);
 ExprValue evaluateRelational(ExprValue a, ExprValue b, int op);
 ExprValue evaluateLogical(ExprValue a, ExprValue b, int op);
 ExprValue evaluateNot(ExprValue a);
-void ensureBooleanCondition(ExprValue expr, const char *context);
+StmtNode *programRoot = NULL;
 
-#line 109 "mytho.tab.c"
+/* AST constructors */
+ExprNode* makeIntLiteralNode(int v);
+ExprNode* makeFloatLiteralNode(double v);
+ExprNode* makeCharLiteralNode(char v);
+ExprNode* makeBoolLiteralNode(int v);
+ExprNode* makeIdentifierNode(char *name);
+ExprNode* makeBinaryExprNode(const char *op, ExprNode *left, ExprNode *right);
+ExprNode* makeUnaryExprNode(const char *op, ExprNode *expr);
+
+StmtNode* makeDeclNode(DataType type, char *name, ExprNode *expr);
+StmtNode* makeAssignNode(char *name, ExprNode *expr);
+StmtNode* makePrintNode(ExprNode *expr);
+StmtNode* makeIfNode(ExprNode *cond, StmtNode *thenBlock, StmtNode *elseBlock);
+StmtNode* makeWhileNode(ExprNode *cond, StmtNode *body);
+StmtNode* makeForNode(StmtNode *initStmt, ExprNode *cond, StmtNode *updateStmt, StmtNode *body);
+StmtNode* makeDoWhileNode(StmtNode *body, ExprNode *cond);
+StmtNode* makeBreakNode(void);
+StmtNode* makeContinueNode(void);
+StmtNode* appendStatement(StmtNode *list, StmtNode *stmt);
+
+/* runtime */
+ExprValue evalExprNode(ExprNode *expr);
+ExecResult execStmt(StmtNode *stmt);
+ExecResult execBlock(StmtNode *block);
+
+#line 134 "mytho.tab.c"
 
 # ifndef YY_CAST
 #  ifdef __cplusplus
@@ -212,18 +237,13 @@ enum yysymbol_kind_t
   YYSYMBOL_assignment = 76,                /* assignment  */
   YYSYMBOL_print_stmt = 77,                /* print_stmt  */
   YYSYMBOL_if_stmt = 78,                   /* if_stmt  */
-  YYSYMBOL_79_1 = 79,                      /* $@1  */
-  YYSYMBOL_else_if_list = 80,              /* else_if_list  */
-  YYSYMBOL_81_2 = 81,                      /* $@2  */
-  YYSYMBOL_else_part = 82,                 /* else_part  */
-  YYSYMBOL_while_stmt = 83,                /* while_stmt  */
-  YYSYMBOL_84_3 = 84,                      /* $@3  */
-  YYSYMBOL_for_stmt = 85,                  /* for_stmt  */
-  YYSYMBOL_86_4 = 86,                      /* $@4  */
-  YYSYMBOL_do_while_stmt = 87,             /* do_while_stmt  */
-  YYSYMBOL_88_5 = 88,                      /* $@5  */
-  YYSYMBOL_type_spec = 89,                 /* type_spec  */
-  YYSYMBOL_expression = 90                 /* expression  */
+  YYSYMBOL_else_if_list = 79,              /* else_if_list  */
+  YYSYMBOL_else_part = 80,                 /* else_part  */
+  YYSYMBOL_while_stmt = 81,                /* while_stmt  */
+  YYSYMBOL_for_stmt = 82,                  /* for_stmt  */
+  YYSYMBOL_do_while_stmt = 83,             /* do_while_stmt  */
+  YYSYMBOL_type_spec = 84,                 /* type_spec  */
+  YYSYMBOL_expression = 85                 /* expression  */
 };
 typedef enum yysymbol_kind_t yysymbol_kind_t;
 
@@ -340,7 +360,7 @@ typedef int yytype_uint16;
 
 
 /* Stored state numbers (used for stacks). */
-typedef yytype_uint8 yy_state_t;
+typedef yytype_int8 yy_state_t;
 
 /* State numbers in computations.  */
 typedef int yy_state_fast_t;
@@ -551,16 +571,16 @@ union yyalloc
 /* YYFINAL -- State number of the termination state.  */
 #define YYFINAL  5
 /* YYLAST -- Last index in YYTABLE.  */
-#define YYLAST   417
+#define YYLAST   420
 
 /* YYNTOKENS -- Number of terminals.  */
 #define YYNTOKENS  70
 /* YYNNTS -- Number of nonterminals.  */
-#define YYNNTS  21
+#define YYNNTS  16
 /* YYNRULES -- Number of rules.  */
-#define YYNRULES  57
+#define YYNRULES  52
 /* YYNSTATES -- Number of states.  */
-#define YYNSTATES  130
+#define YYNSTATES  125
 
 /* YYMAXUTOK -- Last valid token kind.  */
 #define YYMAXUTOK   324
@@ -614,14 +634,14 @@ static const yytype_int8 yytranslate[] =
 
 #if YYDEBUG
 /* YYRLINE[YYN] -- Source line where rule number YYN was defined.  */
-static const yytype_uint8 yyrline[] =
+static const yytype_int16 yyrline[] =
 {
-       0,    80,    80,    87,    91,    92,    96,    97,    98,    99,
-     100,   101,   102,   103,   104,   108,   112,   120,   127,   146,
-     145,   154,   153,   158,   162,   163,   168,   167,   176,   175,
-     184,   183,   190,   191,   192,   193,   194,   195,   199,   200,
-     201,   202,   204,   214,   215,   216,   217,   218,   219,   222,
-     223,   224,   226,   228,   232,   236,   240,   244
+       0,   117,   117,   124,   131,   136,   142,   143,   144,   145,
+     146,   147,   148,   149,   150,   154,   158,   165,   172,   181,
+     197,   211,   217,   222,   228,   235,   242,   249,   250,   251,
+     252,   253,   254,   258,   259,   260,   261,   262,   264,   265,
+     266,   267,   268,   269,   271,   272,   273,   275,   277,   278,
+     279,   280,   281
 };
 #endif
 
@@ -650,9 +670,8 @@ static const char *const yytname[] =
   "INT_LITERAL", "BOOL_LITERAL", "FLOAT_LITERAL", "CHAR_LITERAL",
   "IDENTIFIER", "STRING_LITERAL", "$accept", "program", "main_function",
   "statement_list", "statement", "declaration", "assignment", "print_stmt",
-  "if_stmt", "$@1", "else_if_list", "$@2", "else_part", "while_stmt",
-  "$@3", "for_stmt", "$@4", "do_while_stmt", "$@5", "type_spec",
-  "expression", YY_NULLPTR
+  "if_stmt", "else_if_list", "else_part", "while_stmt", "for_stmt",
+  "do_while_stmt", "type_spec", "expression", YY_NULLPTR
 };
 
 static const char *
@@ -676,19 +695,19 @@ yysymbol_name (yysymbol_kind_t yysymbol)
    STATE-NUM.  */
 static const yytype_int16 yypact[] =
 {
-     -21,   -52,    10,   -53,   -37,   -53,   -35,   -53,    39,   -53,
-     -53,   -53,   -53,   -53,   -53,   -30,    -8,    -6,   -33,   -39,
-     -38,    -5,   -53,    29,   -53,    -4,    -3,     0,   -53,   -53,
-     -53,   -53,    -2,     5,     6,     5,   -53,   -53,   -53,     5,
-       5,   -53,   -53,   -53,    49,     5,     5,   -53,   -53,   -53,
-     -53,   -53,   222,     4,   242,    82,   262,   342,     5,   374,
-     282,     5,     5,     5,     5,     5,     5,     5,     5,     5,
-       5,     5,     5,     5,   -53,     5,   -53,    62,   -53,   342,
-     -53,   -23,   -23,   -53,   -53,   -53,   374,   358,   -15,   -15,
-     -15,   -15,   -15,   -15,    19,   198,    20,    23,   -53,     6,
-     -53,     5,   105,    24,   129,   302,   -53,   -53,   -53,   -53,
-       7,    35,    22,    38,    41,   -53,   -53,   -53,     5,   -53,
-     152,   322,   176,   -53,   -53,   -53,    42,   -53,   199,   -53
+     -21,   -52,    10,   -53,   -39,   -53,   -37,   -53,    42,   -53,
+     -53,   -53,   -53,   -53,   -53,   -33,   -30,   -16,   -14,   -38,
+     -35,   -13,   -53,    25,   -53,    -7,    -6,    -1,   -53,   -53,
+     -53,   -53,    -4,     7,    -3,     7,   -53,   -53,   -53,     7,
+       7,   -53,   -53,   -53,    43,     7,     7,   -53,   -53,   -53,
+     -53,   -53,   225,     9,   245,    84,   265,   345,     7,   377,
+     285,     7,     7,     7,     7,     7,     7,     7,     7,     7,
+       7,     7,     7,     7,    19,     7,    20,    67,   -53,   345,
+     -53,   -23,   -23,   -53,   -53,   -53,   377,   361,   -15,   -15,
+     -15,   -15,   -15,   -15,   -53,   201,   -53,    26,   108,    -3,
+     131,     7,   -53,    27,   -53,   305,     8,    35,    23,    29,
+      37,   -53,   -53,   -53,     7,   -53,   155,   325,   178,   -53,
+      38,   -53,   -53,   202,   -53
 };
 
 /* YYDEFACT[STATE-NUM] -- Default reduction number in state STATE-NUM.
@@ -696,130 +715,130 @@ static const yytype_int16 yypact[] =
    means the default is an error.  */
 static const yytype_int8 yydefact[] =
 {
-       0,     0,     0,     2,     0,     1,     0,     5,     0,    32,
-      33,    34,    35,    36,    37,     0,     0,     0,     0,     0,
+       0,     0,     0,     2,     0,     1,     0,     5,     0,    27,
+      28,    29,    30,    31,    32,     0,     0,     0,     0,     0,
        0,     0,     3,     0,     4,     0,     0,     0,     9,    10,
       11,    12,     0,     0,     0,     0,     5,    13,    14,     0,
-       0,     6,     7,     8,    15,     0,     0,    53,    56,    54,
-      55,    57,     0,     0,     0,     0,     0,    17,     0,    51,
+       0,     6,     7,     8,    15,     0,     0,    48,    51,    49,
+      50,    52,     0,     0,     0,     0,     0,    17,     0,    46,
        0,     0,     0,     0,     0,     0,     0,     0,     0,     0,
-       0,     0,     0,     0,    19,     0,    26,     0,    18,    16,
-      52,    38,    39,    40,    41,    42,    49,    50,    43,    44,
-      45,    46,    47,    48,     0,     0,     0,     0,     5,     0,
-       5,     0,     0,     0,     0,     0,    23,    28,    27,    30,
-      25,     0,     0,     0,     0,    20,     5,    31,     0,     5,
-       0,     0,     0,    29,    21,    24,     0,     5,     0,    22
+       0,     0,     0,     0,     0,     0,     0,     0,    18,    16,
+      47,    33,    34,    35,    36,    37,    44,    45,    38,    39,
+      40,    41,    42,    43,     5,     0,     5,     0,     0,     0,
+       0,     0,    21,     0,    24,     0,    23,     0,     0,     0,
+       0,    19,     5,    26,     0,     5,     0,     0,     0,    25,
+       0,    22,     5,     0,    20
 };
 
 /* YYPGOTO[NTERM-NUM].  */
 static const yytype_int8 yypgoto[] =
 {
      -53,   -53,   -53,   -36,   -53,   -53,   -31,   -53,   -53,   -53,
-     -53,   -53,   -53,   -53,   -53,   -53,   -53,   -53,   -53,   -53,
-     -34
+     -53,   -53,   -53,   -53,   -53,   -34
 };
 
 /* YYDEFGOTO[NTERM-NUM].  */
 static const yytype_int8 yydefgoto[] =
 {
-       0,     2,     3,     8,    24,    25,    26,    27,    28,    94,
-     110,   126,   115,    29,    96,    30,   111,    31,   112,    32,
-      52
+       0,     2,     3,     8,    24,    25,    26,    27,    28,   106,
+     111,    29,    30,    31,    32,    52
 };
 
 /* YYTABLE[YYPACT[STATE-NUM]] -- What to do in state STATE-NUM.  If
    positive, shift that token.  If negative, reduce the rule whose
    number is the opposite.  If YYTABLE_NINF, syntax error.  */
-static const yytype_uint8 yytable[] =
+static const yytype_int8 yytable[] =
 {
       55,    54,     1,    53,     4,    56,    57,    63,    64,    65,
-       5,    59,    60,    61,    62,    63,    64,    65,   113,   114,
-       6,    37,    38,     7,    79,    36,    33,    81,    82,    83,
+       5,    59,    60,    61,    62,    63,    64,    65,     6,   109,
+     110,     7,    37,    33,    79,    38,    34,    81,    82,    83,
       84,    85,    86,    87,    88,    89,    90,    91,    92,    93,
-      45,    95,     9,    10,    11,    12,    13,    14,    34,    15,
-      35,    39,    16,    17,    18,    40,    41,    42,    19,    20,
-      43,    46,   102,    21,   104,    75,    44,   105,   103,    47,
-      48,    49,    50,    51,    23,    58,    97,    98,   100,   101,
-     120,   107,   117,   122,   121,     9,    10,    11,    12,    13,
-      14,   128,    15,   116,   118,    16,    17,    18,    22,   119,
-     127,    19,    20,     0,     0,     0,    21,    23,     9,    10,
-      11,    12,    13,    14,     0,    15,     0,     0,    16,    17,
-      18,     0,     0,     0,    19,    20,     0,     0,     0,    21,
-       0,     0,     9,    10,    11,    12,    13,    14,     0,    15,
-       0,    77,    16,    17,    18,     0,     0,     0,    19,    20,
-      23,     0,     0,    21,     0,     9,    10,    11,    12,    13,
-      14,     0,    15,     0,   106,    16,    17,    18,     0,     0,
-       0,    19,    20,    23,     0,     0,    21,     0,     0,     9,
-      10,    11,    12,    13,    14,     0,    15,     0,   108,    16,
-      17,    18,     0,     0,     0,    19,    20,    23,     0,     0,
-      21,     0,     9,    10,    11,    12,    13,    14,     0,    15,
-       0,   123,    16,    17,    18,     0,     0,     0,    19,    20,
-      23,     0,     0,    21,     0,     0,    61,    62,    63,    64,
-      65,    66,    67,     0,     0,   125,    68,    69,    70,    71,
-      72,    73,     0,     0,    23,     0,     0,     0,     0,     0,
-      61,    62,    63,    64,    65,    66,    67,     0,   129,    99,
-      68,    69,    70,    71,    72,    73,     0,    23,     0,     0,
-      61,    62,    63,    64,    65,    66,    67,     0,     0,    74,
-      68,    69,    70,    71,    72,    73,     0,     0,     0,     0,
-      61,    62,    63,    64,    65,    66,    67,     0,     0,    76,
-      68,    69,    70,    71,    72,    73,     0,     0,     0,     0,
-      61,    62,    63,    64,    65,    66,    67,     0,     0,    78,
-      68,    69,    70,    71,    72,    73,     0,     0,     0,     0,
-      61,    62,    63,    64,    65,    66,    67,     0,     0,    80,
-      68,    69,    70,    71,    72,    73,     0,     0,     0,     0,
-      61,    62,    63,    64,    65,    66,    67,     0,     0,   109,
-      68,    69,    70,    71,    72,    73,     0,     0,     0,     0,
-      61,    62,    63,    64,    65,    66,    67,     0,     0,   124,
-      68,    69,    70,    71,    72,    73,    61,    62,    63,    64,
-      65,    66,     0,     0,     0,     0,    68,    69,    70,    71,
-      72,    73,    61,    62,    63,    64,    65,     0,     0,     0,
-       0,     0,    68,    69,    70,    71,    72,    73
+      35,    95,    45,    39,    36,     9,    10,    11,    12,    13,
+      14,    40,    15,    41,    42,    16,    17,    18,    98,    43,
+     100,    19,    20,    46,    44,    23,    21,   105,   103,    58,
+      75,    47,    48,    49,    50,    51,   116,    94,    96,   118,
+     117,    97,   101,   113,   107,   114,   123,     9,    10,    11,
+      12,    13,    14,   112,    15,   115,   122,    16,    17,    18,
+       0,    22,     0,    19,    20,     0,     0,     0,    21,     0,
+      23,     9,    10,    11,    12,    13,    14,     0,    15,     0,
+       0,    16,    17,    18,     0,     0,     0,    19,    20,     0,
+       0,     0,    21,     0,     9,    10,    11,    12,    13,    14,
+       0,    15,     0,    77,    16,    17,    18,     0,     0,     0,
+      19,    20,    23,     0,     0,    21,     0,     0,     9,    10,
+      11,    12,    13,    14,     0,    15,     0,   102,    16,    17,
+      18,     0,     0,     0,    19,    20,    23,     0,     0,    21,
+       0,     9,    10,    11,    12,    13,    14,     0,    15,     0,
+     104,    16,    17,    18,     0,     0,     0,    19,    20,    23,
+       0,     0,    21,     0,     0,     9,    10,    11,    12,    13,
+      14,     0,    15,     0,   119,    16,    17,    18,     0,     0,
+       0,    19,    20,    23,     0,     0,    21,     0,     0,    61,
+      62,    63,    64,    65,    66,    67,     0,   121,     0,    68,
+      69,    70,    71,    72,    73,     0,    23,     0,     0,     0,
+       0,     0,     0,    61,    62,    63,    64,    65,    66,    67,
+       0,   124,    99,    68,    69,    70,    71,    72,    73,     0,
+      23,     0,     0,    61,    62,    63,    64,    65,    66,    67,
+       0,     0,    74,    68,    69,    70,    71,    72,    73,     0,
+       0,     0,     0,    61,    62,    63,    64,    65,    66,    67,
+       0,     0,    76,    68,    69,    70,    71,    72,    73,     0,
+       0,     0,     0,    61,    62,    63,    64,    65,    66,    67,
+       0,     0,    78,    68,    69,    70,    71,    72,    73,     0,
+       0,     0,     0,    61,    62,    63,    64,    65,    66,    67,
+       0,     0,    80,    68,    69,    70,    71,    72,    73,     0,
+       0,     0,     0,    61,    62,    63,    64,    65,    66,    67,
+       0,     0,   108,    68,    69,    70,    71,    72,    73,     0,
+       0,     0,     0,    61,    62,    63,    64,    65,    66,    67,
+       0,     0,   120,    68,    69,    70,    71,    72,    73,    61,
+      62,    63,    64,    65,    66,     0,     0,     0,     0,    68,
+      69,    70,    71,    72,    73,    61,    62,    63,    64,    65,
+       0,     0,     0,     0,     0,    68,    69,    70,    71,    72,
+      73
 };
 
 static const yytype_int8 yycheck[] =
 {
       36,    35,    23,    34,    56,    39,    40,    30,    31,    32,
-       0,    45,    46,    28,    29,    30,    31,    32,    11,    12,
-      57,    60,    60,    58,    58,    58,    56,    61,    62,    63,
+       0,    45,    46,    28,    29,    30,    31,    32,    57,    11,
+      12,    58,    60,    56,    58,    60,    56,    61,    62,    63,
       64,    65,    66,    67,    68,    69,    70,    71,    72,    73,
-      35,    75,     3,     4,     5,     6,     7,     8,    56,    10,
-      56,    56,    13,    14,    15,    26,    60,    60,    19,    20,
-      60,    56,    98,    24,   100,    61,    68,   101,    99,    64,
-      65,    66,    67,    68,    68,    26,    14,    58,    58,    56,
-     116,    57,    60,   119,   118,     3,     4,     5,     6,     7,
-       8,   127,    10,    58,    56,    13,    14,    15,    59,    58,
-      58,    19,    20,    -1,    -1,    -1,    24,    68,     3,     4,
-       5,     6,     7,     8,    -1,    10,    -1,    -1,    13,    14,
-      15,    -1,    -1,    -1,    19,    20,    -1,    -1,    -1,    24,
-      -1,    -1,     3,     4,     5,     6,     7,     8,    -1,    10,
-      -1,    59,    13,    14,    15,    -1,    -1,    -1,    19,    20,
-      68,    -1,    -1,    24,    -1,     3,     4,     5,     6,     7,
+      56,    75,    35,    56,    58,     3,     4,     5,     6,     7,
+       8,    26,    10,    60,    60,    13,    14,    15,    94,    60,
+      96,    19,    20,    56,    68,    68,    24,   101,    99,    26,
+      61,    64,    65,    66,    67,    68,   112,    58,    58,   115,
+     114,    14,    56,    60,    57,    56,   122,     3,     4,     5,
+       6,     7,     8,    58,    10,    58,    58,    13,    14,    15,
+      -1,    59,    -1,    19,    20,    -1,    -1,    -1,    24,    -1,
+      68,     3,     4,     5,     6,     7,     8,    -1,    10,    -1,
+      -1,    13,    14,    15,    -1,    -1,    -1,    19,    20,    -1,
+      -1,    -1,    24,    -1,     3,     4,     5,     6,     7,     8,
+      -1,    10,    -1,    59,    13,    14,    15,    -1,    -1,    -1,
+      19,    20,    68,    -1,    -1,    24,    -1,    -1,     3,     4,
+       5,     6,     7,     8,    -1,    10,    -1,    59,    13,    14,
+      15,    -1,    -1,    -1,    19,    20,    68,    -1,    -1,    24,
+      -1,     3,     4,     5,     6,     7,     8,    -1,    10,    -1,
+      59,    13,    14,    15,    -1,    -1,    -1,    19,    20,    68,
+      -1,    -1,    24,    -1,    -1,     3,     4,     5,     6,     7,
        8,    -1,    10,    -1,    59,    13,    14,    15,    -1,    -1,
-      -1,    19,    20,    68,    -1,    -1,    24,    -1,    -1,     3,
-       4,     5,     6,     7,     8,    -1,    10,    -1,    59,    13,
-      14,    15,    -1,    -1,    -1,    19,    20,    68,    -1,    -1,
-      24,    -1,     3,     4,     5,     6,     7,     8,    -1,    10,
-      -1,    59,    13,    14,    15,    -1,    -1,    -1,    19,    20,
-      68,    -1,    -1,    24,    -1,    -1,    28,    29,    30,    31,
-      32,    33,    34,    -1,    -1,    59,    38,    39,    40,    41,
-      42,    43,    -1,    -1,    68,    -1,    -1,    -1,    -1,    -1,
-      28,    29,    30,    31,    32,    33,    34,    -1,    59,    61,
-      38,    39,    40,    41,    42,    43,    -1,    68,    -1,    -1,
-      28,    29,    30,    31,    32,    33,    34,    -1,    -1,    57,
-      38,    39,    40,    41,    42,    43,    -1,    -1,    -1,    -1,
-      28,    29,    30,    31,    32,    33,    34,    -1,    -1,    57,
-      38,    39,    40,    41,    42,    43,    -1,    -1,    -1,    -1,
-      28,    29,    30,    31,    32,    33,    34,    -1,    -1,    57,
-      38,    39,    40,    41,    42,    43,    -1,    -1,    -1,    -1,
-      28,    29,    30,    31,    32,    33,    34,    -1,    -1,    57,
-      38,    39,    40,    41,    42,    43,    -1,    -1,    -1,    -1,
-      28,    29,    30,    31,    32,    33,    34,    -1,    -1,    57,
-      38,    39,    40,    41,    42,    43,    -1,    -1,    -1,    -1,
-      28,    29,    30,    31,    32,    33,    34,    -1,    -1,    57,
-      38,    39,    40,    41,    42,    43,    28,    29,    30,    31,
-      32,    33,    -1,    -1,    -1,    -1,    38,    39,    40,    41,
-      42,    43,    28,    29,    30,    31,    32,    -1,    -1,    -1,
-      -1,    -1,    38,    39,    40,    41,    42,    43
+      -1,    19,    20,    68,    -1,    -1,    24,    -1,    -1,    28,
+      29,    30,    31,    32,    33,    34,    -1,    59,    -1,    38,
+      39,    40,    41,    42,    43,    -1,    68,    -1,    -1,    -1,
+      -1,    -1,    -1,    28,    29,    30,    31,    32,    33,    34,
+      -1,    59,    61,    38,    39,    40,    41,    42,    43,    -1,
+      68,    -1,    -1,    28,    29,    30,    31,    32,    33,    34,
+      -1,    -1,    57,    38,    39,    40,    41,    42,    43,    -1,
+      -1,    -1,    -1,    28,    29,    30,    31,    32,    33,    34,
+      -1,    -1,    57,    38,    39,    40,    41,    42,    43,    -1,
+      -1,    -1,    -1,    28,    29,    30,    31,    32,    33,    34,
+      -1,    -1,    57,    38,    39,    40,    41,    42,    43,    -1,
+      -1,    -1,    -1,    28,    29,    30,    31,    32,    33,    34,
+      -1,    -1,    57,    38,    39,    40,    41,    42,    43,    -1,
+      -1,    -1,    -1,    28,    29,    30,    31,    32,    33,    34,
+      -1,    -1,    57,    38,    39,    40,    41,    42,    43,    -1,
+      -1,    -1,    -1,    28,    29,    30,    31,    32,    33,    34,
+      -1,    -1,    57,    38,    39,    40,    41,    42,    43,    28,
+      29,    30,    31,    32,    33,    -1,    -1,    -1,    -1,    38,
+      39,    40,    41,    42,    43,    28,    29,    30,    31,    32,
+      -1,    -1,    -1,    -1,    -1,    38,    39,    40,    41,    42,
+      43
 };
 
 /* YYSTOS[STATE-NUM] -- The symbol kind of the accessing symbol of
@@ -828,39 +847,39 @@ static const yytype_int8 yystos[] =
 {
        0,    23,    71,    72,    56,     0,    57,    58,    73,     3,
        4,     5,     6,     7,     8,    10,    13,    14,    15,    19,
-      20,    24,    59,    68,    74,    75,    76,    77,    78,    83,
-      85,    87,    89,    56,    56,    56,    58,    60,    60,    56,
+      20,    24,    59,    68,    74,    75,    76,    77,    78,    81,
+      82,    83,    84,    56,    56,    56,    58,    60,    60,    56,
       26,    60,    60,    60,    68,    35,    56,    64,    65,    66,
-      67,    68,    90,    76,    90,    73,    90,    90,    26,    90,
-      90,    28,    29,    30,    31,    32,    33,    34,    38,    39,
-      40,    41,    42,    43,    57,    61,    57,    59,    57,    90,
-      57,    90,    90,    90,    90,    90,    90,    90,    90,    90,
-      90,    90,    90,    90,    79,    90,    84,    14,    58,    61,
-      58,    56,    73,    76,    73,    90,    59,    57,    59,    57,
-      80,    86,    88,    11,    12,    82,    58,    60,    56,    58,
-      73,    90,    73,    59,    57,    59,    81,    58,    73,    59
+      67,    68,    85,    76,    85,    73,    85,    85,    26,    85,
+      85,    28,    29,    30,    31,    32,    33,    34,    38,    39,
+      40,    41,    42,    43,    57,    61,    57,    59,    57,    85,
+      57,    85,    85,    85,    85,    85,    85,    85,    85,    85,
+      85,    85,    85,    85,    58,    85,    58,    14,    73,    61,
+      73,    56,    59,    76,    59,    85,    79,    57,    57,    11,
+      12,    80,    58,    60,    56,    58,    73,    85,    73,    59,
+      57,    59,    58,    73,    59
 };
 
 /* YYR1[RULE-NUM] -- Symbol kind of the left-hand side of rule RULE-NUM.  */
 static const yytype_int8 yyr1[] =
 {
        0,    70,    71,    72,    73,    73,    74,    74,    74,    74,
-      74,    74,    74,    74,    74,    75,    75,    76,    77,    79,
-      78,    81,    80,    80,    82,    82,    84,    83,    86,    85,
-      88,    87,    89,    89,    89,    89,    89,    89,    90,    90,
-      90,    90,    90,    90,    90,    90,    90,    90,    90,    90,
-      90,    90,    90,    90,    90,    90,    90,    90
+      74,    74,    74,    74,    74,    75,    75,    76,    77,    78,
+      79,    79,    80,    80,    81,    82,    83,    84,    84,    84,
+      84,    84,    84,    85,    85,    85,    85,    85,    85,    85,
+      85,    85,    85,    85,    85,    85,    85,    85,    85,    85,
+      85,    85,    85
 };
 
 /* YYR2[RULE-NUM] -- Number of symbols on the right-hand side of rule RULE-NUM.  */
 static const yytype_int8 yyr2[] =
 {
        0,     2,     1,     6,     2,     0,     2,     2,     2,     1,
-       1,     1,     1,     2,     2,     2,     4,     3,     4,     0,
-      10,     0,     9,     0,     4,     0,     0,     8,     0,    12,
-       0,    10,     1,     1,     1,     1,     1,     1,     3,     3,
-       3,     3,     3,     3,     3,     3,     3,     3,     3,     3,
-       3,     2,     3,     1,     1,     1,     1,     1
+       1,     1,     1,     2,     2,     2,     4,     3,     4,     9,
+       8,     0,     4,     0,     7,    11,     9,     1,     1,     1,
+       1,     1,     1,     3,     3,     3,     3,     3,     3,     3,
+       3,     3,     3,     3,     3,     3,     2,     3,     1,     1,
+       1,     1,     1
 };
 
 
@@ -1324,274 +1343,364 @@ yyreduce:
   switch (yyn)
     {
   case 2: /* program: main_function  */
-#line 81 "mytho.y"
+#line 118 "mytho.y"
       {
-          fprintf(outputFile, "Parsing Successful\n");
+          programRoot = (yyvsp[0].stmtNode);
       }
-#line 1332 "mytho.tab.c"
+#line 1351 "mytho.tab.c"
+    break;
+
+  case 3: /* main_function: MAIN LPAREN RPAREN LBRACE statement_list RBRACE  */
+#line 125 "mytho.y"
+      {
+          (yyval.stmtNode) = (yyvsp[-1].stmtNode);
+      }
+#line 1359 "mytho.tab.c"
+    break;
+
+  case 4: /* statement_list: statement_list statement  */
+#line 132 "mytho.y"
+      {
+          (yyval.stmtNode) = appendStatement((yyvsp[-1].stmtNode), (yyvsp[0].stmtNode));
+      }
+#line 1367 "mytho.tab.c"
+    break;
+
+  case 5: /* statement_list: %empty  */
+#line 136 "mytho.y"
+      {
+          (yyval.stmtNode) = NULL;
+      }
+#line 1375 "mytho.tab.c"
+    break;
+
+  case 6: /* statement: declaration DOT  */
+#line 142 "mytho.y"
+                           { (yyval.stmtNode) = (yyvsp[-1].stmtNode); }
+#line 1381 "mytho.tab.c"
+    break;
+
+  case 7: /* statement: assignment DOT  */
+#line 143 "mytho.y"
+                           { (yyval.stmtNode) = (yyvsp[-1].stmtNode); }
+#line 1387 "mytho.tab.c"
+    break;
+
+  case 8: /* statement: print_stmt DOT  */
+#line 144 "mytho.y"
+                           { (yyval.stmtNode) = (yyvsp[-1].stmtNode); }
+#line 1393 "mytho.tab.c"
+    break;
+
+  case 9: /* statement: if_stmt  */
+#line 145 "mytho.y"
+                           { (yyval.stmtNode) = (yyvsp[0].stmtNode); }
+#line 1399 "mytho.tab.c"
+    break;
+
+  case 10: /* statement: while_stmt  */
+#line 146 "mytho.y"
+                           { (yyval.stmtNode) = (yyvsp[0].stmtNode); }
+#line 1405 "mytho.tab.c"
+    break;
+
+  case 11: /* statement: for_stmt  */
+#line 147 "mytho.y"
+                           { (yyval.stmtNode) = (yyvsp[0].stmtNode); }
+#line 1411 "mytho.tab.c"
+    break;
+
+  case 12: /* statement: do_while_stmt  */
+#line 148 "mytho.y"
+                           { (yyval.stmtNode) = (yyvsp[0].stmtNode); }
+#line 1417 "mytho.tab.c"
+    break;
+
+  case 13: /* statement: BREAK DOT  */
+#line 149 "mytho.y"
+                           { (yyval.stmtNode) = makeBreakNode(); }
+#line 1423 "mytho.tab.c"
+    break;
+
+  case 14: /* statement: CONTINUE DOT  */
+#line 150 "mytho.y"
+                           { (yyval.stmtNode) = makeContinueNode(); }
+#line 1429 "mytho.tab.c"
     break;
 
   case 15: /* declaration: type_spec IDENTIFIER  */
-#line 109 "mytho.y"
+#line 155 "mytho.y"
       {
-          insertSymbol((yyvsp[0].sval), (yyvsp[-1].dtype));
+          (yyval.stmtNode) = makeDeclNode((yyvsp[-1].dtype), (yyvsp[0].sval), NULL);
       }
-#line 1340 "mytho.tab.c"
+#line 1437 "mytho.tab.c"
     break;
 
   case 16: /* declaration: type_spec IDENTIFIER ASSIGN expression  */
-#line 113 "mytho.y"
+#line 159 "mytho.y"
       {
-          insertSymbol((yyvsp[-2].sval), (yyvsp[-3].dtype));
-          updateSymbol((yyvsp[-2].sval), (yyvsp[0].expr));
+          (yyval.stmtNode) = makeDeclNode((yyvsp[-3].dtype), (yyvsp[-2].sval), (yyvsp[0].exprNode));
       }
-#line 1349 "mytho.tab.c"
+#line 1445 "mytho.tab.c"
     break;
 
   case 17: /* assignment: IDENTIFIER ASSIGN expression  */
-#line 121 "mytho.y"
+#line 166 "mytho.y"
       {
-          updateSymbol((yyvsp[-2].sval), (yyvsp[0].expr));
+          (yyval.stmtNode) = makeAssignNode((yyvsp[-2].sval), (yyvsp[0].exprNode));
       }
-#line 1357 "mytho.tab.c"
+#line 1453 "mytho.tab.c"
     break;
 
   case 18: /* print_stmt: PRINT LPAREN expression RPAREN  */
-#line 128 "mytho.y"
+#line 173 "mytho.y"
       {
-          if ((yyvsp[-1].expr).type == TYPE_INT)
-              fprintf(outputFile, "%d\n", (yyvsp[-1].expr).val.iVal);
-          else if ((yyvsp[-1].expr).type == TYPE_FLOAT)
-              fprintf(outputFile, "%f\n", (yyvsp[-1].expr).val.fVal);
-          else if ((yyvsp[-1].expr).type == TYPE_DOUBLE)
-              fprintf(outputFile, "%lf\n", (yyvsp[-1].expr).val.dVal);
-          else if ((yyvsp[-1].expr).type == TYPE_CHAR)
-              fprintf(outputFile, "%c\n", (yyvsp[-1].expr).val.cVal);
-          else if ((yyvsp[-1].expr).type == TYPE_BOOL)
-              fprintf(outputFile, "%s\n", (yyvsp[-1].expr).val.bVal ? "true" : "false");
+          (yyval.stmtNode) = makePrintNode((yyvsp[-1].exprNode));
       }
-#line 1374 "mytho.tab.c"
+#line 1461 "mytho.tab.c"
     break;
 
-  case 19: /* $@1: %empty  */
-#line 146 "mytho.y"
+  case 19: /* if_stmt: IF LPAREN expression RPAREN LBRACE statement_list RBRACE else_if_list else_part  */
+#line 182 "mytho.y"
       {
-          ensureBooleanCondition((yyvsp[-1].expr), "if");
+          StmtNode *elseChain = (yyvsp[-1].stmtNode);
+          if (elseChain == NULL)
+              elseChain = (yyvsp[0].stmtNode);
+          else {
+              StmtNode *tail = elseChain;
+              while (tail->elseBlock != NULL)
+                  tail = tail->elseBlock;
+              tail->elseBlock = (yyvsp[0].stmtNode);
+          }
+
+          (yyval.stmtNode) = makeIfNode((yyvsp[-6].exprNode), (yyvsp[-3].stmtNode), elseChain);
       }
-#line 1382 "mytho.tab.c"
+#line 1479 "mytho.tab.c"
     break;
 
-  case 21: /* $@2: %empty  */
-#line 154 "mytho.y"
+  case 20: /* else_if_list: else_if_list ELSE_IF LPAREN expression RPAREN LBRACE statement_list RBRACE  */
+#line 198 "mytho.y"
       {
-          ensureBooleanCondition((yyvsp[-1].expr), "else if");
+          StmtNode *node = makeIfNode((yyvsp[-4].exprNode), (yyvsp[-1].stmtNode), NULL);
+
+          if ((yyvsp[-7].stmtNode) == NULL) (yyval.stmtNode) = node;
+          else {
+              StmtNode *tail = (yyvsp[-7].stmtNode);
+              while (tail->elseBlock != NULL)
+                  tail = tail->elseBlock;
+              tail->elseBlock = node;
+              (yyval.stmtNode) = (yyvsp[-7].stmtNode);
+          }
       }
-#line 1390 "mytho.tab.c"
+#line 1496 "mytho.tab.c"
     break;
 
-  case 26: /* $@3: %empty  */
-#line 168 "mytho.y"
+  case 21: /* else_if_list: %empty  */
+#line 211 "mytho.y"
       {
-          ensureBooleanCondition((yyvsp[-1].expr), "while");
+          (yyval.stmtNode) = NULL;
       }
-#line 1398 "mytho.tab.c"
+#line 1504 "mytho.tab.c"
     break;
 
-  case 28: /* $@4: %empty  */
-#line 176 "mytho.y"
-      {
-          ensureBooleanCondition((yyvsp[-3].expr), "for");
-      }
-#line 1406 "mytho.tab.c"
-    break;
-
-  case 30: /* $@5: %empty  */
-#line 184 "mytho.y"
-      {
-          ensureBooleanCondition((yyvsp[-1].expr), "do-while");
-      }
-#line 1414 "mytho.tab.c"
-    break;
-
-  case 32: /* type_spec: KEYWORD_INT  */
-#line 190 "mytho.y"
-                       { (yyval.dtype) = TYPE_INT; }
-#line 1420 "mytho.tab.c"
-    break;
-
-  case 33: /* type_spec: KEYWORD_FLOAT  */
-#line 191 "mytho.y"
-                       { (yyval.dtype) = TYPE_FLOAT; }
-#line 1426 "mytho.tab.c"
-    break;
-
-  case 34: /* type_spec: KEYWORD_DOUBLE  */
-#line 192 "mytho.y"
-                       { (yyval.dtype) = TYPE_DOUBLE; }
-#line 1432 "mytho.tab.c"
-    break;
-
-  case 35: /* type_spec: KEYWORD_LONG  */
-#line 193 "mytho.y"
-                       { (yyval.dtype) = TYPE_INT; }
-#line 1438 "mytho.tab.c"
-    break;
-
-  case 36: /* type_spec: KEYWORD_CHAR  */
-#line 194 "mytho.y"
-                       { (yyval.dtype) = TYPE_CHAR; }
-#line 1444 "mytho.tab.c"
-    break;
-
-  case 37: /* type_spec: KEYWORD_BOOL  */
-#line 195 "mytho.y"
-                       { (yyval.dtype) = TYPE_BOOL; }
-#line 1450 "mytho.tab.c"
-    break;
-
-  case 38: /* expression: expression OP_ADD expression  */
-#line 199 "mytho.y"
-                                     { (yyval.expr) = evaluateArithmetic((yyvsp[-2].expr), (yyvsp[0].expr), 1); }
-#line 1456 "mytho.tab.c"
-    break;
-
-  case 39: /* expression: expression OP_SUB expression  */
-#line 200 "mytho.y"
-                                     { (yyval.expr) = evaluateArithmetic((yyvsp[-2].expr), (yyvsp[0].expr), 2); }
-#line 1462 "mytho.tab.c"
-    break;
-
-  case 40: /* expression: expression OP_MUL expression  */
-#line 201 "mytho.y"
-                                     { (yyval.expr) = evaluateArithmetic((yyvsp[-2].expr), (yyvsp[0].expr), 3); }
-#line 1468 "mytho.tab.c"
-    break;
-
-  case 41: /* expression: expression OP_DIV expression  */
-#line 202 "mytho.y"
-                                     { (yyval.expr) = evaluateArithmetic((yyvsp[-2].expr), (yyvsp[0].expr), 4); }
-#line 1474 "mytho.tab.c"
-    break;
-
-  case 42: /* expression: expression OP_MOD expression  */
-#line 204 "mytho.y"
-                                     {
-                                        if ((yyvsp[-2].expr).type != TYPE_INT || (yyvsp[0].expr).type != TYPE_INT) {
-                                            fprintf(outputFile, "Type Error: modulus only allowed for int\n");
-                                            exit(1);
-                                        }
-                                        (yyval.expr).type = TYPE_INT;
-                                        (yyval.expr).val.iVal = (yyvsp[-2].expr).val.iVal % (yyvsp[0].expr).val.iVal;
-                                      }
-#line 1487 "mytho.tab.c"
-    break;
-
-  case 43: /* expression: expression OP_LT expression  */
-#line 214 "mytho.y"
-                                     { (yyval.expr) = evaluateRelational((yyvsp[-2].expr), (yyvsp[0].expr), 1); }
-#line 1493 "mytho.tab.c"
-    break;
-
-  case 44: /* expression: expression OP_GT expression  */
-#line 215 "mytho.y"
-                                     { (yyval.expr) = evaluateRelational((yyvsp[-2].expr), (yyvsp[0].expr), 2); }
-#line 1499 "mytho.tab.c"
-    break;
-
-  case 45: /* expression: expression OP_LE expression  */
-#line 216 "mytho.y"
-                                     { (yyval.expr) = evaluateRelational((yyvsp[-2].expr), (yyvsp[0].expr), 3); }
-#line 1505 "mytho.tab.c"
-    break;
-
-  case 46: /* expression: expression OP_GE expression  */
-#line 217 "mytho.y"
-                                     { (yyval.expr) = evaluateRelational((yyvsp[-2].expr), (yyvsp[0].expr), 4); }
-#line 1511 "mytho.tab.c"
-    break;
-
-  case 47: /* expression: expression OP_EQ expression  */
+  case 22: /* else_part: ELSE LBRACE statement_list RBRACE  */
 #line 218 "mytho.y"
-                                     { (yyval.expr) = evaluateRelational((yyvsp[-2].expr), (yyvsp[0].expr), 5); }
-#line 1517 "mytho.tab.c"
+      {
+          (yyval.stmtNode) = (yyvsp[-1].stmtNode);
+      }
+#line 1512 "mytho.tab.c"
     break;
 
-  case 48: /* expression: expression OP_NE expression  */
-#line 219 "mytho.y"
-                                     { (yyval.expr) = evaluateRelational((yyvsp[-2].expr), (yyvsp[0].expr), 6); }
-#line 1523 "mytho.tab.c"
-    break;
-
-  case 49: /* expression: expression OP_AND expression  */
+  case 23: /* else_part: %empty  */
 #line 222 "mytho.y"
-                                     { (yyval.expr) = evaluateLogical((yyvsp[-2].expr), (yyvsp[0].expr), 1); }
-#line 1529 "mytho.tab.c"
+      {
+          (yyval.stmtNode) = NULL;
+      }
+#line 1520 "mytho.tab.c"
     break;
 
-  case 50: /* expression: expression OP_OR expression  */
-#line 223 "mytho.y"
-                                     { (yyval.expr) = evaluateLogical((yyvsp[-2].expr), (yyvsp[0].expr), 2); }
-#line 1535 "mytho.tab.c"
+  case 24: /* while_stmt: WHILE LPAREN expression RPAREN LBRACE statement_list RBRACE  */
+#line 229 "mytho.y"
+      {
+          (yyval.stmtNode) = makeWhileNode((yyvsp[-4].exprNode), (yyvsp[-1].stmtNode));
+      }
+#line 1528 "mytho.tab.c"
     break;
 
-  case 51: /* expression: OP_NOT expression  */
-#line 224 "mytho.y"
-                                     { (yyval.expr) = evaluateNot((yyvsp[0].expr)); }
-#line 1541 "mytho.tab.c"
+  case 25: /* for_stmt: FOR LPAREN assignment COLON expression COLON assignment RPAREN LBRACE statement_list RBRACE  */
+#line 236 "mytho.y"
+      {
+          (yyval.stmtNode) = makeForNode((yyvsp[-8].stmtNode), (yyvsp[-6].exprNode), (yyvsp[-4].stmtNode), (yyvsp[-1].stmtNode));
+      }
+#line 1536 "mytho.tab.c"
     break;
 
-  case 52: /* expression: LPAREN expression RPAREN  */
-#line 226 "mytho.y"
-                                     { (yyval.expr) = (yyvsp[-1].expr); }
-#line 1547 "mytho.tab.c"
+  case 26: /* do_while_stmt: DO LBRACE statement_list RBRACE WHILE LPAREN expression RPAREN DOT  */
+#line 243 "mytho.y"
+      {
+          (yyval.stmtNode) = makeDoWhileNode((yyvsp[-6].stmtNode), (yyvsp[-2].exprNode));
+      }
+#line 1544 "mytho.tab.c"
     break;
 
-  case 53: /* expression: INT_LITERAL  */
-#line 228 "mytho.y"
-                                     {
-                                        (yyval.expr).type = TYPE_INT;
-                                        (yyval.expr).val.iVal = (yyvsp[0].ival);
-                                      }
+  case 27: /* type_spec: KEYWORD_INT  */
+#line 249 "mytho.y"
+                       { (yyval.dtype) = TYPE_INT; }
+#line 1550 "mytho.tab.c"
+    break;
+
+  case 28: /* type_spec: KEYWORD_FLOAT  */
+#line 250 "mytho.y"
+                       { (yyval.dtype) = TYPE_FLOAT; }
 #line 1556 "mytho.tab.c"
     break;
 
-  case 54: /* expression: FLOAT_LITERAL  */
-#line 232 "mytho.y"
-                                     {
-                                        (yyval.expr).type = TYPE_DOUBLE;
-                                        (yyval.expr).val.dVal = (yyvsp[0].fval);
-                                      }
-#line 1565 "mytho.tab.c"
+  case 29: /* type_spec: KEYWORD_DOUBLE  */
+#line 251 "mytho.y"
+                       { (yyval.dtype) = TYPE_DOUBLE; }
+#line 1562 "mytho.tab.c"
     break;
 
-  case 55: /* expression: CHAR_LITERAL  */
-#line 236 "mytho.y"
-                                     {
-                                        (yyval.expr).type = TYPE_CHAR;
-                                        (yyval.expr).val.cVal = (yyvsp[0].cval);
-                                      }
+  case 30: /* type_spec: KEYWORD_LONG  */
+#line 252 "mytho.y"
+                       { (yyval.dtype) = TYPE_INT; }
+#line 1568 "mytho.tab.c"
+    break;
+
+  case 31: /* type_spec: KEYWORD_CHAR  */
+#line 253 "mytho.y"
+                       { (yyval.dtype) = TYPE_CHAR; }
 #line 1574 "mytho.tab.c"
     break;
 
-  case 56: /* expression: BOOL_LITERAL  */
-#line 240 "mytho.y"
-                                     {
-                                        (yyval.expr).type = TYPE_BOOL;
-                                        (yyval.expr).val.bVal = (yyvsp[0].ival);
-                                      }
-#line 1583 "mytho.tab.c"
+  case 32: /* type_spec: KEYWORD_BOOL  */
+#line 254 "mytho.y"
+                       { (yyval.dtype) = TYPE_BOOL; }
+#line 1580 "mytho.tab.c"
     break;
 
-  case 57: /* expression: IDENTIFIER  */
-#line 244 "mytho.y"
-                                     {
-                                        (yyval.expr) = getSymbolValue((yyvsp[0].sval));
-                                      }
-#line 1591 "mytho.tab.c"
+  case 33: /* expression: expression OP_ADD expression  */
+#line 258 "mytho.y"
+                                     { (yyval.exprNode) = makeBinaryExprNode("add", (yyvsp[-2].exprNode), (yyvsp[0].exprNode)); }
+#line 1586 "mytho.tab.c"
+    break;
+
+  case 34: /* expression: expression OP_SUB expression  */
+#line 259 "mytho.y"
+                                     { (yyval.exprNode) = makeBinaryExprNode("sub", (yyvsp[-2].exprNode), (yyvsp[0].exprNode)); }
+#line 1592 "mytho.tab.c"
+    break;
+
+  case 35: /* expression: expression OP_MUL expression  */
+#line 260 "mytho.y"
+                                     { (yyval.exprNode) = makeBinaryExprNode("mul", (yyvsp[-2].exprNode), (yyvsp[0].exprNode)); }
+#line 1598 "mytho.tab.c"
+    break;
+
+  case 36: /* expression: expression OP_DIV expression  */
+#line 261 "mytho.y"
+                                     { (yyval.exprNode) = makeBinaryExprNode("div", (yyvsp[-2].exprNode), (yyvsp[0].exprNode)); }
+#line 1604 "mytho.tab.c"
+    break;
+
+  case 37: /* expression: expression OP_MOD expression  */
+#line 262 "mytho.y"
+                                     { (yyval.exprNode) = makeBinaryExprNode("mod", (yyvsp[-2].exprNode), (yyvsp[0].exprNode)); }
+#line 1610 "mytho.tab.c"
+    break;
+
+  case 38: /* expression: expression OP_LT expression  */
+#line 264 "mytho.y"
+                                     { (yyval.exprNode) = makeBinaryExprNode("lt", (yyvsp[-2].exprNode), (yyvsp[0].exprNode)); }
+#line 1616 "mytho.tab.c"
+    break;
+
+  case 39: /* expression: expression OP_GT expression  */
+#line 265 "mytho.y"
+                                     { (yyval.exprNode) = makeBinaryExprNode("gt", (yyvsp[-2].exprNode), (yyvsp[0].exprNode)); }
+#line 1622 "mytho.tab.c"
+    break;
+
+  case 40: /* expression: expression OP_LE expression  */
+#line 266 "mytho.y"
+                                     { (yyval.exprNode) = makeBinaryExprNode("le", (yyvsp[-2].exprNode), (yyvsp[0].exprNode)); }
+#line 1628 "mytho.tab.c"
+    break;
+
+  case 41: /* expression: expression OP_GE expression  */
+#line 267 "mytho.y"
+                                     { (yyval.exprNode) = makeBinaryExprNode("ge", (yyvsp[-2].exprNode), (yyvsp[0].exprNode)); }
+#line 1634 "mytho.tab.c"
+    break;
+
+  case 42: /* expression: expression OP_EQ expression  */
+#line 268 "mytho.y"
+                                     { (yyval.exprNode) = makeBinaryExprNode("eq", (yyvsp[-2].exprNode), (yyvsp[0].exprNode)); }
+#line 1640 "mytho.tab.c"
+    break;
+
+  case 43: /* expression: expression OP_NE expression  */
+#line 269 "mytho.y"
+                                     { (yyval.exprNode) = makeBinaryExprNode("ne", (yyvsp[-2].exprNode), (yyvsp[0].exprNode)); }
+#line 1646 "mytho.tab.c"
+    break;
+
+  case 44: /* expression: expression OP_AND expression  */
+#line 271 "mytho.y"
+                                     { (yyval.exprNode) = makeBinaryExprNode("and", (yyvsp[-2].exprNode), (yyvsp[0].exprNode)); }
+#line 1652 "mytho.tab.c"
+    break;
+
+  case 45: /* expression: expression OP_OR expression  */
+#line 272 "mytho.y"
+                                     { (yyval.exprNode) = makeBinaryExprNode("or", (yyvsp[-2].exprNode), (yyvsp[0].exprNode)); }
+#line 1658 "mytho.tab.c"
+    break;
+
+  case 46: /* expression: OP_NOT expression  */
+#line 273 "mytho.y"
+                                     { (yyval.exprNode) = makeUnaryExprNode("not", (yyvsp[0].exprNode)); }
+#line 1664 "mytho.tab.c"
+    break;
+
+  case 47: /* expression: LPAREN expression RPAREN  */
+#line 275 "mytho.y"
+                                     { (yyval.exprNode) = (yyvsp[-1].exprNode); }
+#line 1670 "mytho.tab.c"
+    break;
+
+  case 48: /* expression: INT_LITERAL  */
+#line 277 "mytho.y"
+                                     { (yyval.exprNode) = makeIntLiteralNode((yyvsp[0].ival)); }
+#line 1676 "mytho.tab.c"
+    break;
+
+  case 49: /* expression: FLOAT_LITERAL  */
+#line 278 "mytho.y"
+                                     { (yyval.exprNode) = makeFloatLiteralNode((yyvsp[0].fval)); }
+#line 1682 "mytho.tab.c"
+    break;
+
+  case 50: /* expression: CHAR_LITERAL  */
+#line 279 "mytho.y"
+                                     { (yyval.exprNode) = makeCharLiteralNode((yyvsp[0].cval)); }
+#line 1688 "mytho.tab.c"
+    break;
+
+  case 51: /* expression: BOOL_LITERAL  */
+#line 280 "mytho.y"
+                                     { (yyval.exprNode) = makeBoolLiteralNode((yyvsp[0].ival)); }
+#line 1694 "mytho.tab.c"
+    break;
+
+  case 52: /* expression: IDENTIFIER  */
+#line 281 "mytho.y"
+                                     { (yyval.exprNode) = makeIdentifierNode((yyvsp[0].sval)); }
+#line 1700 "mytho.tab.c"
     break;
 
 
-#line 1595 "mytho.tab.c"
+#line 1704 "mytho.tab.c"
 
       default: break;
     }
@@ -1784,14 +1893,206 @@ yyreturnlab:
   return yyresult;
 }
 
-#line 249 "mytho.y"
+#line 284 "mytho.y"
 
 
-void ensureBooleanCondition(ExprValue expr, const char *context) {
-    if (expr.type != TYPE_BOOL) {
-        fprintf(outputFile, "Type Error: %s condition must be boolean\n", context);
-        exit(1);
-    }
+ExprNode* makeIntLiteralNode(int v) {
+    ExprNode *node = malloc(sizeof(ExprNode));
+    node->kind = EXPR_LITERAL;
+    node->type = TYPE_INT;
+    node->literal.iVal = v;
+    node->name = NULL;
+    node->left = node->right = NULL;
+    node->op[0] = '\0';
+    return node;
+}
+
+ExprNode* makeFloatLiteralNode(double v) {
+    ExprNode *node = malloc(sizeof(ExprNode));
+    node->kind = EXPR_LITERAL;
+    node->type = TYPE_FLOAT;
+    node->literal.dVal = v;
+    node->name = NULL;
+    node->left = node->right = NULL;
+    node->op[0] = '\0';
+    return node;
+}
+
+ExprNode* makeCharLiteralNode(char v) {
+    ExprNode *node = malloc(sizeof(ExprNode));
+    node->kind = EXPR_LITERAL;
+    node->type = TYPE_CHAR;
+    node->literal.cVal = v;
+    node->name = NULL;
+    node->left = node->right = NULL;
+    node->op[0] = '\0';
+    return node;
+}
+
+ExprNode* makeBoolLiteralNode(int v) {
+    ExprNode *node = malloc(sizeof(ExprNode));
+    node->kind = EXPR_LITERAL;
+    node->type = TYPE_BOOL;
+    node->literal.bVal = v;
+    node->name = NULL;
+    node->left = node->right = NULL;
+    node->op[0] = '\0';
+    return node;
+}
+
+ExprNode* makeIdentifierNode(char *name) {
+    ExprNode *node = malloc(sizeof(ExprNode));
+    node->kind = EXPR_IDENTIFIER;
+    node->type = TYPE_INVALID;
+    node->name = strdup(name);
+    node->left = node->right = NULL;
+    node->op[0] = '\0';
+    return node;
+}
+
+ExprNode* makeBinaryExprNode(const char *op, ExprNode *left, ExprNode *right) {
+    ExprNode *node = malloc(sizeof(ExprNode));
+    node->kind = EXPR_BINARY;
+    node->type = TYPE_INVALID;
+    strcpy(node->op, op);
+    node->left = left;
+    node->right = right;
+    node->name = NULL;
+    return node;
+}
+
+ExprNode* makeUnaryExprNode(const char *op, ExprNode *expr) {
+    ExprNode *node = malloc(sizeof(ExprNode));
+    node->kind = EXPR_UNARY;
+    node->type = TYPE_INVALID;
+    strcpy(node->op, op);
+    node->left = expr;
+    node->right = NULL;
+    node->name = NULL;
+    return node;
+}
+
+StmtNode* makeDeclNode(DataType type, char *name, ExprNode *expr) {
+    StmtNode *node = malloc(sizeof(StmtNode));
+    node->kind = STMT_DECL;
+    node->declaredType = type;
+    node->name = strdup(name);
+    node->expr = expr;
+    node->condition = NULL;
+    node->initStmt = node->updateStmt = NULL;
+    node->body = node->thenBlock = node->elseBlock = NULL;
+    node->next = NULL;
+    return node;
+}
+
+StmtNode* makeAssignNode(char *name, ExprNode *expr) {
+    StmtNode *node = malloc(sizeof(StmtNode));
+    node->kind = STMT_ASSIGN;
+    node->name = strdup(name);
+    node->expr = expr;
+    node->condition = NULL;
+    node->initStmt = node->updateStmt = NULL;
+    node->body = node->thenBlock = node->elseBlock = NULL;
+    node->next = NULL;
+    return node;
+}
+
+StmtNode* makePrintNode(ExprNode *expr) {
+    StmtNode *node = malloc(sizeof(StmtNode));
+    node->kind = STMT_PRINT;
+    node->expr = expr;
+    node->name = NULL;
+    node->condition = NULL;
+    node->initStmt = node->updateStmt = NULL;
+    node->body = node->thenBlock = node->elseBlock = NULL;
+    node->next = NULL;
+    return node;
+}
+
+StmtNode* makeIfNode(ExprNode *cond, StmtNode *thenBlock, StmtNode *elseBlock) {
+    StmtNode *node = malloc(sizeof(StmtNode));
+    node->kind = STMT_IF;
+    node->condition = cond;
+    node->thenBlock = thenBlock;
+    node->elseBlock = elseBlock;
+    node->name = NULL;
+    node->expr = NULL;
+    node->initStmt = node->updateStmt = NULL;
+    node->body = NULL;
+    node->next = NULL;
+    return node;
+}
+
+StmtNode* makeWhileNode(ExprNode *cond, StmtNode *body) {
+    StmtNode *node = malloc(sizeof(StmtNode));
+    node->kind = STMT_WHILE;
+    node->condition = cond;
+    node->body = body;
+    node->name = NULL;
+    node->expr = NULL;
+    node->initStmt = node->updateStmt = NULL;
+    node->thenBlock = node->elseBlock = NULL;
+    node->next = NULL;
+    return node;
+}
+
+StmtNode* makeForNode(StmtNode *initStmt, ExprNode *cond, StmtNode *updateStmt, StmtNode *body) {
+    StmtNode *node = malloc(sizeof(StmtNode));
+    node->kind = STMT_FOR;
+    node->initStmt = initStmt;
+    node->condition = cond;
+    node->updateStmt = updateStmt;
+    node->body = body;
+    node->name = NULL;
+    node->expr = NULL;
+    node->thenBlock = node->elseBlock = NULL;
+    node->next = NULL;
+    return node;
+}
+
+StmtNode* makeDoWhileNode(StmtNode *body, ExprNode *cond) {
+    StmtNode *node = malloc(sizeof(StmtNode));
+    node->kind = STMT_DO_WHILE;
+    node->body = body;
+    node->condition = cond;
+    node->name = NULL;
+    node->expr = NULL;
+    node->initStmt = node->updateStmt = NULL;
+    node->thenBlock = node->elseBlock = NULL;
+    node->next = NULL;
+    return node;
+}
+
+StmtNode* makeBreakNode(void) {
+    StmtNode *node = malloc(sizeof(StmtNode));
+    node->kind = STMT_BREAK;
+    node->name = NULL;
+    node->expr = NULL;
+    node->condition = NULL;
+    node->initStmt = node->updateStmt = NULL;
+    node->body = node->thenBlock = node->elseBlock = NULL;
+    node->next = NULL;
+    return node;
+}
+
+StmtNode* makeContinueNode(void) {
+    StmtNode *node = malloc(sizeof(StmtNode));
+    node->kind = STMT_CONTINUE;
+    node->name = NULL;
+    node->expr = NULL;
+    node->condition = NULL;
+    node->initStmt = node->updateStmt = NULL;
+    node->body = node->thenBlock = node->elseBlock = NULL;
+    node->next = NULL;
+    return node;
+}
+
+StmtNode* appendStatement(StmtNode *list, StmtNode *stmt) {
+    if (list == NULL) return stmt;
+    StmtNode *cur = list;
+    while (cur->next != NULL) cur = cur->next;
+    cur->next = stmt;
+    return list;
 }
 
 const char* typeToString(DataType t) {
@@ -2044,6 +2345,200 @@ ExprValue evaluateLogical(ExprValue a, ExprValue b, int op) {
     return result;
 }
 
+ExprValue evalExprNode(ExprNode *expr) {
+    ExprValue left, right;
+
+    if (expr->kind == EXPR_LITERAL) {
+        ExprValue result;
+        result.type = expr->type;
+        result.val = expr->literal;
+        return result;
+    }
+
+    if (expr->kind == EXPR_IDENTIFIER) {
+        return getSymbolValue(expr->name);
+    }
+
+    if (expr->kind == EXPR_UNARY) {
+        left = evalExprNode(expr->left);
+        if (strcmp(expr->op, "not") == 0)
+            return evaluateNot(left);
+    }
+
+    if (expr->kind == EXPR_BINARY) {
+        left = evalExprNode(expr->left);
+        right = evalExprNode(expr->right);
+
+        if (strcmp(expr->op, "add") == 0) return evaluateArithmetic(left, right, 1);
+        if (strcmp(expr->op, "sub") == 0) return evaluateArithmetic(left, right, 2);
+        if (strcmp(expr->op, "mul") == 0) return evaluateArithmetic(left, right, 3);
+        if (strcmp(expr->op, "div") == 0) return evaluateArithmetic(left, right, 4);
+
+        if (strcmp(expr->op, "mod") == 0) {
+            ExprValue result;
+            if (left.type != TYPE_INT || right.type != TYPE_INT) {
+                fprintf(outputFile, "Type Error: modulus only allowed for int\n");
+                exit(1);
+            }
+            result.type = TYPE_INT;
+            result.val.iVal = left.val.iVal % right.val.iVal;
+            return result;
+        }
+
+        if (strcmp(expr->op, "lt") == 0) return evaluateRelational(left, right, 1);
+        if (strcmp(expr->op, "gt") == 0) return evaluateRelational(left, right, 2);
+        if (strcmp(expr->op, "le") == 0) return evaluateRelational(left, right, 3);
+        if (strcmp(expr->op, "ge") == 0) return evaluateRelational(left, right, 4);
+        if (strcmp(expr->op, "eq") == 0) return evaluateRelational(left, right, 5);
+        if (strcmp(expr->op, "ne") == 0) return evaluateRelational(left, right, 6);
+
+        if (strcmp(expr->op, "and") == 0) return evaluateLogical(left, right, 1);
+        if (strcmp(expr->op, "or") == 0) return evaluateLogical(left, right, 2);
+    }
+
+    fprintf(outputFile, "Runtime Error: invalid expression\n");
+    exit(1);
+}
+
+ExecResult execStmt(StmtNode *stmt) {
+    ExecResult result;
+    result.status = EXEC_NORMAL;
+
+    if (stmt == NULL) return result;
+
+    switch (stmt->kind) {
+        case STMT_DECL: {
+            insertSymbol(stmt->name, stmt->declaredType);
+            if (stmt->expr != NULL) {
+                ExprValue val = evalExprNode(stmt->expr);
+                updateSymbol(stmt->name, val);
+            }
+            break;
+        }
+
+        case STMT_ASSIGN: {
+            ExprValue val = evalExprNode(stmt->expr);
+            updateSymbol(stmt->name, val);
+            break;
+        }
+
+        case STMT_PRINT: {
+            ExprValue val = evalExprNode(stmt->expr);
+            if (val.type == TYPE_INT)
+                fprintf(outputFile, "%d\n", val.val.iVal);
+            else if (val.type == TYPE_FLOAT)
+                fprintf(outputFile, "%f\n", val.val.fVal);
+            else if (val.type == TYPE_DOUBLE)
+                fprintf(outputFile, "%lf\n", val.val.dVal);
+            else if (val.type == TYPE_CHAR)
+                fprintf(outputFile, "%c\n", val.val.cVal);
+            else if (val.type == TYPE_BOOL)
+                fprintf(outputFile, "%s\n", val.val.bVal ? "true" : "false");
+            break;
+        }
+
+        case STMT_IF: {
+            ExprValue cond = evalExprNode(stmt->condition);
+            if (cond.type != TYPE_BOOL) {
+                fprintf(outputFile, "Type Error: if condition must be boolean\n");
+                exit(1);
+            }
+
+            if (cond.val.bVal)
+                return execBlock(stmt->thenBlock);
+            else if (stmt->elseBlock != NULL)
+                return execBlock(stmt->elseBlock);
+            break;
+        }
+
+        case STMT_WHILE: {
+            while (1) {
+                ExprValue cond = evalExprNode(stmt->condition);
+                if (cond.type != TYPE_BOOL) {
+                    fprintf(outputFile, "Type Error: while condition must be boolean\n");
+                    exit(1);
+                }
+                if (!cond.val.bVal) break;
+
+                result = execBlock(stmt->body);
+
+                if (result.status == EXEC_BREAK) {
+                    result.status = EXEC_NORMAL;
+                    break;
+                }
+                if (result.status == EXEC_CONTINUE) {
+                    result.status = EXEC_NORMAL;
+                    continue;
+                }
+            }
+            break;
+        }
+
+        case STMT_FOR: {
+            if (stmt->initStmt) execStmt(stmt->initStmt);
+
+            while (1) {
+                ExprValue cond = evalExprNode(stmt->condition);
+                if (cond.type != TYPE_BOOL) {
+                    fprintf(outputFile, "Type Error: for condition must be boolean\n");
+                    exit(1);
+                }
+                if (!cond.val.bVal) break;
+
+                result = execBlock(stmt->body);
+
+                if (result.status == EXEC_BREAK) {
+                    result.status = EXEC_NORMAL;
+                    break;
+                }
+
+                if (stmt->updateStmt) execStmt(stmt->updateStmt);
+
+                if (result.status == EXEC_CONTINUE) {
+                    result.status = EXEC_NORMAL;
+                    continue;
+                }
+            }
+            break;
+        }
+
+        case STMT_DO_WHILE: {
+            do {
+                result = execBlock(stmt->body);
+
+                if (result.status == EXEC_BREAK) {
+                    result.status = EXEC_NORMAL;
+                    break;
+                }
+
+                ExprValue cond = evalExprNode(stmt->condition);
+                if (cond.type != TYPE_BOOL) {
+                    fprintf(outputFile, "Type Error: do-while condition must be boolean\n");
+                    exit(1);
+                }
+
+                if (result.status == EXEC_CONTINUE)
+                    result.status = EXEC_NORMAL;
+
+                if (!cond.val.bVal)
+                    break;
+
+            } while (1);
+            break;
+        }
+
+        case STMT_BREAK:
+            result.status = EXEC_BREAK;
+            return result;
+
+        case STMT_CONTINUE:
+            result.status = EXEC_CONTINUE;
+            return result;
+    }
+
+    return result;
+}
+
 ExprValue evaluateNot(ExprValue a) {
     ExprValue result;
     result.type = TYPE_BOOL;
@@ -2054,6 +2549,20 @@ ExprValue evaluateNot(ExprValue a) {
     }
 
     result.val.bVal = !a.val.bVal;
+    return result;
+}
+ExecResult execBlock(StmtNode *block) {
+    ExecResult result;
+    result.status = EXEC_NORMAL;
+
+    StmtNode *cur = block;
+    while (cur != NULL) {
+        result = execStmt(cur);
+        if (result.status != EXEC_NORMAL)
+            return result;
+        cur = cur->next;
+    }
+
     return result;
 }
 
@@ -2076,6 +2585,12 @@ int main(void) {
     }
 
     yyparse();
+
+    /* EXECUTE AST AFTER PARSING */
+    if (programRoot != NULL) {
+        execBlock(programRoot);
+        fprintf(outputFile, "Parsing Successful\n");
+    }
 
     fclose(yyin);
     fclose(outputFile);

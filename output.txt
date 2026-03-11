@@ -1,1 +1,4 @@
-Type Error: if condition must be boolean
+0
+1
+2
+Parsing Successful
