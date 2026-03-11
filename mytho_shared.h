@@ -97,21 +97,26 @@ typedef enum
 {
     EXEC_NORMAL,
     EXEC_BREAK,
-    EXEC_CONTINUE
+    EXEC_CONTINUE,
+    EXEC_RETURN
 } ExecStatus;
 
 typedef struct
 {
     ExecStatus status;
+    ExprValue returnValue;
 } ExecResult;
+
+#define MAX_PARAMS 10
+#define MAX_FUNCTIONS 50
 
 typedef struct Function
 {
     char name[50];
     DataType returnType;
 
-    char paramNames[10][50];
-    DataType paramTypes[10];
+    char paramNames[MAX_PARAMS][50];
+    DataType paramTypes[MAX_PARAMS];
     int paramCount;
 
     StmtNode *body;
