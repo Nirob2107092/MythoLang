@@ -37,7 +37,8 @@ typedef enum
     EXPR_LITERAL,
     EXPR_IDENTIFIER,
     EXPR_BINARY,
-    EXPR_UNARY
+    EXPR_UNARY,
+    EXPR_FUNC_CALL
 } ExprKind;
 
 struct ExprNode
@@ -52,6 +53,8 @@ struct ExprNode
 
     ExprNode *left;
     ExprNode *right;
+    ExprNode *args; /* linked list of argument expressions */
+    ExprNode *next; /* next argument in arg list */
 };
 
 /* Statement AST */
@@ -101,4 +104,15 @@ typedef struct
     ExecStatus status;
 } ExecResult;
 
+typedef struct Function
+{
+    char name[50];
+    DataType returnType;
+
+    char paramNames[10][50];
+    DataType paramTypes[10];
+    int paramCount;
+
+    StmtNode *body;
+} Function;
 #endif
