@@ -142,17 +142,19 @@ print_stmt
 /* ---------- STEP 4: control flow ---------- */
 
 if_stmt
-    : IF LPAREN expression RPAREN LBRACE statement_list RBRACE else_if_list else_part
+    : IF LPAREN expression RPAREN
       {
           ensureBooleanCondition($3, "if");
       }
+      LBRACE statement_list RBRACE else_if_list else_part
     ;
 
 else_if_list
-    : else_if_list ELSE_IF LPAREN expression RPAREN LBRACE statement_list RBRACE
+    : else_if_list ELSE_IF LPAREN expression RPAREN
       {
           ensureBooleanCondition($4, "else if");
       }
+      LBRACE statement_list RBRACE
     | /* empty */
     ;
 
@@ -162,26 +164,28 @@ else_part
     ;
 
 while_stmt
-    : WHILE LPAREN expression RPAREN LBRACE statement_list RBRACE
+    : WHILE LPAREN expression RPAREN
       {
           ensureBooleanCondition($3, "while");
       }
+      LBRACE statement_list RBRACE
     ;
 
 for_stmt
-    : FOR LPAREN assignment COLON expression COLON assignment RPAREN LBRACE statement_list RBRACE
+    : FOR LPAREN assignment COLON expression COLON assignment RPAREN
       {
           ensureBooleanCondition($5, "for");
       }
+      LBRACE statement_list RBRACE
     ;
 
 do_while_stmt
-    : DO LBRACE statement_list RBRACE WHILE LPAREN expression RPAREN DOT
+    : DO LBRACE statement_list RBRACE WHILE LPAREN expression RPAREN
       {
           ensureBooleanCondition($7, "do-while");
       }
+      DOT
     ;
-
 type_spec
     : KEYWORD_INT      { $$ = TYPE_INT; }
     | KEYWORD_FLOAT    { $$ = TYPE_FLOAT; }
