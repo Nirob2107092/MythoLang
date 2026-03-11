@@ -171,6 +171,25 @@ function_def
       }
     ;
 
+param_list
+    : param_list COMMA param
+    | param
+    | /* empty */
+    ;
+param
+    : type_spec IDENTIFIER
+      {
+          if (tempParamCount >= MAX_PARAMS) {
+              fprintf(outputFile, "Semantic Error: too many parameters\n");
+              exit(1);
+          }
+
+          strcpy(tempParamNames[tempParamCount], $2);
+          tempParamTypes[tempParamCount] = $1;
+          tempParamCount++;
+      }
+    ;
+
 statement_list
     : statement_list statement
       {
@@ -192,6 +211,7 @@ statement
     | do_while_stmt        { $$ = $1; }
     | BREAK DOT            { $$ = makeBreakNode(); }
     | CONTINUE DOT         { $$ = makeContinueNode(); }
+    | RETURN expression DOT { $$ = makeReturnNode($2); }
     ;
 
 declaration
