@@ -7,7 +7,7 @@ TARGET = mytho.exe
 all: $(TARGET)
 
 $(TARGET): lex.yy.c mytho.tab.c
-	$(CC) $(CFLAGS) lex.yy.c mytho.tab.c -o $(TARGET) -lfl
+	$(CC) $(CFLAGS) lex.yy.c mytho.tab.c -o $(TARGET) -lfl -lm
 
 mytho.tab.c mytho.tab.h: mytho.y
 	$(BISON) -d mytho.y
@@ -19,4 +19,4 @@ run: $(TARGET)
 	./$(TARGET)
 
 clean:
-	rm -f lex.yy.c mytho.tab.c mytho.tab.h $(TARGET) output.txt
+	rm -f lex.yy.c mytho.tab.c mytho.tab.h $(TARGET) output.txt tac_output.txt opt_output.txt

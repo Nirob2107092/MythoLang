@@ -1,7 +1,20 @@
-Prometheus() {
-    zeus a := 0 .
-    eternal(a < 3) {
-        proclaim(a) .
-        a := a add 1 .
+ritual addNums(zeus a, zeus b) :-> zeus {
+    back a add b .
+}
+
+ritual factorial(zeus n) :-> zeus {
+    omen(n <= 1) {
+        back 1 .
     }
+    back n forge factorial(n minus 1) .
+}
+
+Prometheus() {
+    zeus sum := addNums(10, 20) .
+    proclaim(sum) .
+
+    zeus fact := factorial(5) .
+    proclaim(fact) .
+
+    proclaim(addNums(3, 7)) .
 }

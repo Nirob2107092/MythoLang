@@ -1,0 +1,41 @@
+=== Three-Address Code (TAC) ===
+
+function addNums:
+    param int a
+    param int b
+    t0 = a + b
+    return t0
+    endfunction
+
+function factorial:
+    param int n
+    t1 = n <= 1
+    ifFalse t1 goto L0
+    return 1
+    goto L1
+L0:
+L1:
+    t2 = n - 1
+    param t2
+    t3 = call factorial, 1
+    t4 = n * t3
+    return t4
+    endfunction
+
+function Prometheus (main):
+    declare int sum
+    param 10
+    param 20
+    t5 = call addNums, 2
+    sum = t5
+    print sum
+    declare int fact
+    param 5
+    t6 = call factorial, 1
+    fact = t6
+    print fact
+    param 3
+    param 7
+    t7 = call addNums, 2
+    print t7
+    endfunction
