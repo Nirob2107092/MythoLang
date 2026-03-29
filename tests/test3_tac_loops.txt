@@ -1,0 +1,11 @@
+Prometheus() {
+    zeus i := 0 .
+    eternal(i < 3) {
+        omen(i = 1) {
+            proclaim(99) .
+        } destiny {
+            proclaim(i) .
+        }
+        i := i add 1 .
+    }
+}

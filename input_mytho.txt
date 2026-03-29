@@ -1,20 +1,16 @@
-ritual addNums(zeus a, zeus b) :-> zeus {
-    back a add b .
-}
-
-ritual factorial(zeus n) :-> zeus {
-    omen(n <= 1) {
-        back 1 .
-    }
-    back n forge factorial(n minus 1) .
-}
-
 Prometheus() {
-    zeus sum := addNums(10, 20) .
-    proclaim(sum) .
+    truth a := ambrosia(6) .
+    proclaim(a) .
 
-    zeus fact := factorial(5) .
-    proclaim(fact) .
+    truth b := ambrosia(28) .
+    proclaim(b) .
 
-    proclaim(addNums(3, 7)) .
+    truth c := ambrosia(12) .
+    proclaim(c) .
+
+    truth d := ambrosia(496) .
+    proclaim(d) .
+
+    truth e := ambrosia(10) .
+    proclaim(e) .
 }

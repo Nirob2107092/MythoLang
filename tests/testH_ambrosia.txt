@@ -1,0 +1,16 @@
+Prometheus() {
+    truth a := ambrosia(6) .
+    proclaim(a) .
+
+    truth b := ambrosia(28) .
+    proclaim(b) .
+
+    truth c := ambrosia(12) .
+    proclaim(c) .
+
+    truth d := ambrosia(496) .
+    proclaim(d) .
+
+    truth e := ambrosia(10) .
+    proclaim(e) .
+}

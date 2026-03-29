@@ -77,6 +77,8 @@ ExprValue callFunction(char *name, ExprNode *args);
 ExprNode* appendArgument(ExprNode *list, ExprNode *arg);
 StmtNode* makeReturnNode(ExprNode *expr);
 ExprNode* makeFunctionCallNode(char *name, ExprNode *args);
+ExprNode* makeBuiltinNode(const char *fnName, ExprNode *arg);
+ExprNode* makeInputNode(void);
 
 int tacTempCount = 0;
 int tacLabelCount = 0;
@@ -327,6 +329,7 @@ type_spec
     | KEYWORD_LONG     { $$ = TYPE_INT; }
     | KEYWORD_CHAR     { $$ = TYPE_CHAR; }
     | KEYWORD_BOOL     { $$ = TYPE_BOOL; }
+    | KEYWORD_VOID     { $$ = TYPE_VOID; }
     ;
 
 expression
@@ -335,6 +338,7 @@ expression
     | expression OP_MUL expression   { $$ = makeBinaryExprNode("mul", $1, $3); }
     | expression OP_DIV expression   { $$ = makeBinaryExprNode("div", $1, $3); }
     | expression OP_MOD expression   { $$ = makeBinaryExprNode("mod", $1, $3); }
+    | expression OP_POW expression   { $$ = makeBinaryExprNode("pow", $1, $3); }
     | expression OP_LT expression    { $$ = makeBinaryExprNode("lt", $1, $3); }
     | expression OP_GT expression    { $$ = makeBinaryExprNode("gt", $1, $3); }
     | expression OP_LE expression    { $$ = makeBinaryExprNode("le", $1, $3); }
@@ -345,6 +349,19 @@ expression
     | expression OP_OR expression    { $$ = makeBinaryExprNode("or", $1, $3); }
     | OP_NOT expression              { $$ = makeUnaryExprNode("not", $2); }
     | LPAREN expression RPAREN       { $$ = $2; }
+    | ROOT LPAREN expression RPAREN      { $$ = makeBuiltinNode("root", $3); }
+    | ABS_FN LPAREN expression RPAREN    { $$ = makeBuiltinNode("abs", $3); }
+    | FLOOR_FN LPAREN expression RPAREN  { $$ = makeBuiltinNode("flr", $3); }
+    | CEIL_FN LPAREN expression RPAREN   { $$ = makeBuiltinNode("ceil", $3); }
+    | LOG_FN LPAREN expression RPAREN    { $$ = makeBuiltinNode("log", $3); }
+    | SIN_FN LPAREN expression RPAREN    { $$ = makeBuiltinNode("sin", $3); }
+    | COS_FN LPAREN expression RPAREN    { $$ = makeBuiltinNode("cos", $3); }
+    | TAN_FN LPAREN expression RPAREN    { $$ = makeBuiltinNode("tan", $3); }
+    | ASIN_FN LPAREN expression RPAREN   { $$ = makeBuiltinNode("asin", $3); }
+    | ACOS_FN LPAREN expression RPAREN   { $$ = makeBuiltinNode("acos", $3); }
+    | ATAN_FN LPAREN expression RPAREN   { $$ = makeBuiltinNode("atan", $3); }
+    | AMBROSIA_FN LPAREN expression RPAREN { $$ = makeBuiltinNode("ambrosia", $3); }
+    | INPUT LPAREN RPAREN                { $$ = makeInputNode(); }
     | INT_LITERAL                    { $$ = makeIntLiteralNode($1); }
     | FLOAT_LITERAL                  { $$ = makeFloatLiteralNode($1); }
     | CHAR_LITERAL                   { $$ = makeCharLiteralNode($1); }
@@ -444,6 +461,24 @@ ExprNode* makeFunctionCallNode(char *name, ExprNode *args) {
     node->name = strdup(name); node->args = args;
     node->left = node->right = NULL;
     node->next = NULL; node->op[0] = '\0';
+    return node;
+}
+
+ExprNode* makeBuiltinNode(const char *fnName, ExprNode *arg) {
+    ExprNode *node = malloc(sizeof(ExprNode));
+    node->kind = EXPR_BUILTIN; node->type = TYPE_INVALID;
+    strcpy(node->op, fnName);
+    node->left = arg; node->right = NULL;
+    node->name = NULL; node->args = NULL; node->next = NULL;
+    return node;
+}
+
+ExprNode* makeInputNode(void) {
+    ExprNode *node = malloc(sizeof(ExprNode));
+    node->kind = EXPR_INPUT; node->type = TYPE_INT;
+    node->op[0] = '\0'; node->name = NULL;
+    node->left = node->right = NULL;
+    node->args = NULL; node->next = NULL;
     return node;
 }
 
@@ -590,6 +625,7 @@ const char* typeToString(DataType t) {
         case TYPE_DOUBLE: return "double";
         case TYPE_CHAR: return "char";
         case TYPE_BOOL: return "bool";
+        case TYPE_VOID: return "void";
         default: return "invalid";
     }
 }
@@ -682,6 +718,11 @@ ExprValue getSymbolValue(char *name) {
 void registerFunction(char *name, DataType returnType,
                       char paramNames[][50], DataType paramTypes[],
                       int paramCount, StmtNode *body) {
+    /* Task 1: duplicate function declaration check */
+    if (lookupFunction(name) != NULL) {
+        fprintf(outputFile, "Semantic Error: function '%s' already declared\n", name);
+        exit(1);
+    }
     if (functionCount >= MAX_FUNCTIONS) {
         fprintf(outputFile, "Error: too many functions\n");
         exit(1);
@@ -727,6 +768,14 @@ ExprValue callFunction(char *name, ExprNode *args) {
                 name, f->paramCount, argCount);
         exit(1);
     }
+    /* Task 4: argument type mismatch checking */
+    for (int i = 0; i < f->paramCount; i++) {
+        if (!isAssignable(f->paramTypes[i], argVals[i].type)) {
+            fprintf(outputFile, "Type Error: argument %d of function '%s' expects %s but got %s\n",
+                    i + 1, name, typeToString(f->paramTypes[i]), typeToString(argVals[i].type));
+            exit(1);
+        }
+    }
     pushScope();
     for (int i = 0; i < f->paramCount; i++) {
         insertSymbol(f->paramNames[i], f->paramTypes[i]);
@@ -734,14 +783,25 @@ ExprValue callFunction(char *name, ExprNode *args) {
     }
     ExecResult res = execBlock(f->body);
     popScope();
-    if (res.status == EXEC_RETURN) return res.returnValue;
-    ExprValue defaultVal;
-    defaultVal.type = f->returnType;
-    if (f->returnType == TYPE_INT) defaultVal.val.iVal = 0;
-    else if (f->returnType == TYPE_FLOAT) defaultVal.val.fVal = 0.0f;
-    else if (f->returnType == TYPE_DOUBLE) defaultVal.val.dVal = 0.0;
-    else if (f->returnType == TYPE_BOOL) defaultVal.val.bVal = 0;
-    return defaultVal;
+    if (res.status == EXEC_RETURN) {
+        /* Task 2: return type checking */
+        if (f->returnType != TYPE_VOID &&
+            !isAssignable(f->returnType, res.returnValue.type)) {
+            fprintf(outputFile, "Type Error: function '%s' should return %s but returned %s\n",
+                    name, typeToString(f->returnType), typeToString(res.returnValue.type));
+            exit(1);
+        }
+        return res.returnValue;
+    }
+    /* Task 3: missing return for non-void functions */
+    if (f->returnType != TYPE_VOID) {
+        fprintf(outputFile, "Semantic Error: function '%s' missing return statement\n", name);
+        exit(1);
+    }
+    ExprValue voidVal;
+    voidVal.type = TYPE_VOID;
+    voidVal.val.iVal = 0;
+    return voidVal;
 }
 
 /* ================================================================
@@ -877,6 +937,81 @@ ExprValue evalExprNode(ExprNode *expr) {
     if (expr->kind == EXPR_FUNC_CALL)
         return callFunction(expr->name, expr->args);
 
+    /* Task 6: built-in math functions */
+    if (expr->kind == EXPR_BUILTIN) {
+        ExprValue arg = evalExprNode(expr->left);
+
+        /* ambrosia() — perfect number check, requires int, returns bool */
+        if (strcmp(expr->op, "ambrosia") == 0) {
+            if (arg.type != TYPE_INT) {
+                fprintf(outputFile, "Type Error: ambrosia() requires int operand, got %s\n",
+                        typeToString(arg.type));
+                exit(1);
+            }
+            int n = arg.val.iVal;
+            int sum = 0;
+            if (n > 1) {
+                for (int i = 1; i <= n / 2; i++) {
+                    if (n % i == 0) sum += i;
+                }
+            }
+            ExprValue result;
+            result.type = TYPE_BOOL;
+            result.val.bVal = (n > 1 && sum == n);
+            return result;
+        }
+
+        if (arg.type == TYPE_BOOL || arg.type == TYPE_CHAR) {
+            fprintf(outputFile, "Type Error: built-in '%s' requires numeric operand\n", expr->op);
+            exit(1);
+        }
+        double x;
+        if (arg.type == TYPE_INT) x = (double)arg.val.iVal;
+        else if (arg.type == TYPE_FLOAT) x = (double)arg.val.fVal;
+        else x = arg.val.dVal;
+
+        double res;
+        if      (strcmp(expr->op, "root")  == 0) res = sqrt(x);
+        else if (strcmp(expr->op, "abs")   == 0) res = fabs(x);
+        else if (strcmp(expr->op, "flr")   == 0) res = floor(x);
+        else if (strcmp(expr->op, "ceil")  == 0) res = ceil(x);
+        else if (strcmp(expr->op, "log")   == 0) res = log(x);
+        else if (strcmp(expr->op, "sin")   == 0) res = sin(x);
+        else if (strcmp(expr->op, "cos")   == 0) res = cos(x);
+        else if (strcmp(expr->op, "tan")   == 0) res = tan(x);
+        else if (strcmp(expr->op, "asin")  == 0) res = asin(x);
+        else if (strcmp(expr->op, "acos")  == 0) res = acos(x);
+        else if (strcmp(expr->op, "atan")  == 0) res = atan(x);
+        else {
+            fprintf(outputFile, "Runtime Error: unknown built-in '%s'\n", expr->op);
+            exit(1);
+        }
+
+        /* abs on int stays int, flr/ceil return float-typed result */
+        if (strcmp(expr->op, "abs") == 0 && arg.type == TYPE_INT) {
+            ExprValue result; result.type = TYPE_INT;
+            result.val.iVal = (int)res;
+            return result;
+        }
+        ExprValue result;
+        if (arg.type == TYPE_DOUBLE) { result.type = TYPE_DOUBLE; result.val.dVal = res; }
+        else { result.type = TYPE_FLOAT; result.val.fVal = (float)res; }
+        return result;
+    }
+
+    /* Task 7: listen() — reads integer from stdin */
+    if (expr->kind == EXPR_INPUT) {
+        ExprValue result;
+        result.type = TYPE_INT;
+        int val;
+        if (scanf("%d", &val) != 1) {
+            fprintf(outputFile, "Runtime Error: invalid input for listen()\n");
+            exit(1);
+        }
+        result.val.iVal = val;
+        return result;
+    }
+
     if (expr->kind == EXPR_UNARY) {
         left = evalExprNode(expr->left);
         if (strcmp(expr->op, "not") == 0)
@@ -896,6 +1031,29 @@ ExprValue evalExprNode(ExprNode *expr) {
             }
             result.type = TYPE_INT;
             result.val.iVal = left.val.iVal % right.val.iVal;
+            return result;
+        }
+        /* Task 5: OP_POW evaluation */
+        if (strcmp(expr->op, "pow") == 0) {
+            if (left.type == TYPE_BOOL || left.type == TYPE_CHAR ||
+                right.type == TYPE_BOOL || right.type == TYPE_CHAR) {
+                fprintf(outputFile, "Type Error: ** requires numeric operands\n"); exit(1);
+            }
+            double base_v, exp_v;
+            if (left.type == TYPE_INT) base_v = left.val.iVal;
+            else if (left.type == TYPE_FLOAT) base_v = left.val.fVal;
+            else base_v = left.val.dVal;
+            if (right.type == TYPE_INT) exp_v = right.val.iVal;
+            else if (right.type == TYPE_FLOAT) exp_v = right.val.fVal;
+            else exp_v = right.val.dVal;
+            ExprValue result;
+            if (left.type == TYPE_DOUBLE || right.type == TYPE_DOUBLE) {
+                result.type = TYPE_DOUBLE; result.val.dVal = pow(base_v, exp_v);
+            } else if (left.type == TYPE_FLOAT || right.type == TYPE_FLOAT) {
+                result.type = TYPE_FLOAT; result.val.fVal = (float)pow(base_v, exp_v);
+            } else {
+                result.type = TYPE_INT; result.val.iVal = (int)pow(base_v, exp_v);
+            }
             return result;
         }
         if (strcmp(expr->op, "lt") == 0) return evaluateRelational(left, right, 1);
@@ -1024,7 +1182,8 @@ ExecResult execBlock(StmtNode *block) {
 
 ExprNode* constantFold(ExprNode *expr) {
     if (expr == NULL) return NULL;
-    if (expr->kind == EXPR_LITERAL || expr->kind == EXPR_IDENTIFIER)
+    if (expr->kind == EXPR_LITERAL || expr->kind == EXPR_IDENTIFIER
+        || expr->kind == EXPR_INPUT)
         return expr;
 
     if (expr->kind == EXPR_FUNC_CALL) {
@@ -1034,6 +1193,11 @@ ExprNode* constantFold(ExprNode *expr) {
             *arg = *folded;
             arg = arg->next;
         }
+        return expr;
+    }
+
+    if (expr->kind == EXPR_BUILTIN) {
+        if (expr->left) expr->left = constantFold(expr->left);
         return expr;
     }
 
@@ -1065,6 +1229,7 @@ ExprNode* constantFold(ExprNode *expr) {
             else if (strcmp(expr->op, "mul") == 0) res = a * b;
             else if (strcmp(expr->op, "div") == 0) { if (b == 0) return expr; res = a / b; }
             else if (strcmp(expr->op, "mod") == 0) { if (b == 0) return expr; res = a % b; }
+            else if (strcmp(expr->op, "pow") == 0) res = (int)pow(a, b);
             else isArith = 0;
             if (isArith) {
                 fprintf(optFile, "[OPT] Constant fold: %d %s %d -> %d\n", a, expr->op, b, res);
@@ -1094,6 +1259,7 @@ ExprNode* constantFold(ExprNode *expr) {
             else if (strcmp(expr->op, "sub") == 0) res = a - b;
             else if (strcmp(expr->op, "mul") == 0) res = a * b;
             else if (strcmp(expr->op, "div") == 0) { if (b == 0.0) return expr; res = a / b; }
+            else if (strcmp(expr->op, "pow") == 0) res = pow(a, b);
             else isArith = 0;
             if (isArith) {
                 fprintf(optFile, "[OPT] Constant fold: %g %s %g -> %g\n", a, expr->op, b, res);
@@ -1166,6 +1332,7 @@ const char* opToSymbol(const char *op) {
     if (strcmp(op, "and") == 0) return "&&";
     if (strcmp(op, "or")  == 0) return "||";
     if (strcmp(op, "not") == 0) return "!";
+    if (strcmp(op, "pow") == 0) return "**";
     return op;
 }
 
@@ -1181,6 +1348,17 @@ char* generateTACExpr(ExprNode *expr) {
         return buf;
     }
     if (expr->kind == EXPR_IDENTIFIER) return strdup(expr->name);
+    if (expr->kind == EXPR_BUILTIN) {
+        char *operand = generateTACExpr(expr->left);
+        char *t = newTemp();
+        fprintf(tacFile, "    %s = %s(%s)\n", t, expr->op, operand);
+        free(operand); return t;
+    }
+    if (expr->kind == EXPR_INPUT) {
+        char *t = newTemp();
+        fprintf(tacFile, "    %s = listen()\n", t);
+        return t;
+    }
     if (expr->kind == EXPR_FUNC_CALL) {
         ExprNode *arg = expr->args;
         int argc = 0;

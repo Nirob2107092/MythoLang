@@ -105,6 +105,52 @@ The parser supports a full grammar including:
 - **Duplicate declaration detection** within the same scope
 - **Undeclared variable detection**
 - **Function argument count validation**
+- **Duplicate function declaration detection**
+- **Argument type mismatch checking** (validates each argument against parameter type)
+- **Return type checking** (validates returned value matches declared return type)
+- **Missing return detection** (errors on non-void functions without `back` statement)
+- **Void function support** (`Abyss` keyword for void return type)
+
+### Exponentiation
+
+The `**` operator is supported for numeric exponentiation with right-associative precedence (higher than multiplication).
+
+```
+zeus x := 2 ** 3 .       //myth result: 8
+apollo y := 2.0 ** 10.0 . //myth result: 1024.0
+```
+
+### Built-in Math Functions
+
+| Mytholang      | C equivalent | Description                         |
+| -------------- | ------------ | ----------------------------------- |
+| `root(x)`      | `sqrt(x)`    | Square root                         |
+| `abs(x)`       | `fabs(x)`    | Absolute value                      |
+| `flr(x)`       | `floor(x)`   | Floor                               |
+| `ceil(x)`      | `ceil(x)`    | Ceiling                             |
+| `logarithm(x)` | `log(x)`     | Natural logarithm                   |
+| `sine(x)`      | `sin(x)`     | Sine                                |
+| `cosine(x)`    | `cos(x)`     | Cosine                              |
+| `tan(x)`       | `tan(x)`     | Tangent                             |
+| `asine(x)`     | `asin(x)`    | Arc sine                            |
+| `acosine(x)`   | `acos(x)`    | Arc cosine                          |
+| `atan(x)`      | `atan(x)`    | Arc tangent                         |
+| `ambrosia(x)`  | _(custom)_   | Perfect number check (returns bool) |
+
+All standard built-in functions accept numeric operands (int, float, double) and reject bool/char. Return type matches the operand type (except `abs` on int returns int).
+
+`ambrosia(x)` is a **custom built-in boolean function** unique to Mytholang. It checks whether an integer is a **perfect number** — a number equal to the sum of its proper divisors (e.g. 6 = 1+2+3, 28 = 1+2+4+7+14). It requires an `int` operand and returns `truth` (bool).
+
+### Input with listen()
+
+The `listen()` function reads integer input from stdin at runtime.
+
+```
+zeus x := listen() .   //myth reads an integer from user
+proclaim(x) .          //myth prints it
+```
+
+`listen()` returns `TYPE_INT`. The value can be assigned to float/double variables through implicit type conversion.
 
 ### Constant Folding Optimization
 
@@ -283,6 +329,109 @@ Prometheus() {
 Parsing Successful
 ```
 
+### Example 5: Exponentiation
+
+```
+Prometheus() {
+    zeus x := 2 ** 3 .
+    proclaim(x) .
+}
+```
+
+**output.txt:**
+
+```
+8
+
+Parsing Successful
+```
+
+### Example 6: Built-in Math Functions
+
+```
+Prometheus() {
+    apollo a := root(25.0) .
+    apollo b := abs(-4.0) .
+    apollo c := ceil(2.3) .
+    proclaim(a) .
+    proclaim(b) .
+    proclaim(c) .
+}
+```
+
+**output.txt:**
+
+```
+5.000000
+4.000000
+3.000000
+
+Parsing Successful
+```
+
+### Example 7: User Input with listen()
+
+```
+Prometheus() {
+    zeus x := listen() .
+    proclaim(x) .
+}
+```
+
+If user types `7`:
+
+**output.txt:**
+
+```
+7
+
+Parsing Successful
+```
+
+### Example 8: Semantic Error Detection
+
+```
+ritual sum(zeus a, zeus b) :-> zeus {
+    proclaim(a) .
+}
+
+Prometheus() {
+    zeus z := sum(2, 3) .
+}
+```
+
+**output.txt:**
+
+```
+2
+Semantic Error: function 'sum' missing return statement
+```
+
+### Example 9: ambrosia() — Perfect Number Check
+
+```
+Prometheus() {
+    truth a := ambrosia(6) .
+    proclaim(a) .
+    truth b := ambrosia(28) .
+    proclaim(b) .
+    truth c := ambrosia(12) .
+    proclaim(c) .
+}
+```
+
+**output.txt:**
+
+```
+true
+true
+false
+
+Parsing Successful
+```
+
+6 is perfect (1+2+3=6), 28 is perfect (1+2+4+7+14=28), 12 is not (1+2+3+4+6=16≠12).
+
 ---
 
 ## Installation
@@ -363,6 +512,15 @@ Or:
 | Break / Continue                                       | ✅ Completed |
 | Functions (definition, calls, recursion)               | ✅ Completed |
 | Return Statements                                      | ✅ Completed |
+| Duplicate Function Declaration Check                   | ✅ Completed |
+| Argument Type Mismatch Detection                       | ✅ Completed |
+| Return Type Validation                                 | ✅ Completed |
+| Missing Return Detection                               | ✅ Completed |
+| Void Function Support (`Abyss`)                        | ✅ Completed |
+| Exponentiation (`**`)                                  | ✅ Completed |
+| Built-in Math Functions (root, abs, flr, ceil, etc.)   | ✅ Completed |
+| Custom Function: ambrosia() (perfect number check)     | ✅ Completed |
+| User Input (`listen()`)                                | ✅ Completed |
 | Constant Folding Optimization                          | ✅ Completed |
 | Intermediate Code Generation (TAC)                     | ✅ Completed |
 

@@ -1,0 +1,12 @@
+ritual square(zeus n) :-> zeus {
+    back n forge n .
+}
+
+Prometheus() {
+    zeus i := 1 .
+    zeus total := 0 .
+    cycle(i := 1 : i <= 4 : i := i add 1) {
+        total := total add square(i) .
+    }
+    proclaim(total) .
+}

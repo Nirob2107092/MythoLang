@@ -1,0 +1,6 @@
+Prometheus() {
+    zeus x := listen() .
+    proclaim(x) .
+    zeus y := x add 10 .
+    proclaim(y) .
+}

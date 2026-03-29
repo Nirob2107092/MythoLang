@@ -8,6 +8,7 @@ typedef enum
     TYPE_DOUBLE,
     TYPE_CHAR,
     TYPE_BOOL,
+    TYPE_VOID,
     TYPE_INVALID
 } DataType;
 
@@ -38,7 +39,9 @@ typedef enum
     EXPR_IDENTIFIER,
     EXPR_BINARY,
     EXPR_UNARY,
-    EXPR_FUNC_CALL
+    EXPR_FUNC_CALL,
+    EXPR_BUILTIN,
+    EXPR_INPUT
 } ExprKind;
 
 struct ExprNode

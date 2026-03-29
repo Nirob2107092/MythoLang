@@ -1,0 +1,30 @@
+ritual double(zeus n) :-> zeus {
+    back n forge 2 .
+}
+
+ritual isEven(zeus n) :-> truth {
+    omen(n rem 2 = 0) {
+        back true .
+    }
+    back false .
+}
+
+Prometheus() {
+    zeus base := 2 add 3 .
+    zeus val := double(base) .
+    proclaim(val) .
+
+    truth check := isEven(val) .
+    proclaim(check) .
+
+    zeus sum := 0 .
+    zeus i := 1 .
+    eternal(i <= 5) {
+        sum := sum add i .
+        i := i add 1 .
+    }
+    proclaim(sum) .
+
+    zeus result := 4 forge 5 add 10 .
+    proclaim(result) .
+}

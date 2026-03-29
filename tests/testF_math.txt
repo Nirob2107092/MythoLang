@@ -1,0 +1,12 @@
+Prometheus() {
+    apollo a := root(25.0) .
+    proclaim(a) .
+    apollo b := abs(-4.0) .
+    proclaim(b) .
+    apollo c := ceil(2.3) .
+    proclaim(c) .
+    apollo d := flr(7.9) .
+    proclaim(d) .
+    zeus e := abs(-10) .
+    proclaim(e) .
+}

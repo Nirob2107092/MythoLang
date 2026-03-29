@@ -1,0 +1,9 @@
+ritual bad(zeus a) :-> zeus {
+    truth x := true .
+    back x .
+}
+
+Prometheus() {
+    zeus z := bad(4) .
+    proclaim(z) .
+}

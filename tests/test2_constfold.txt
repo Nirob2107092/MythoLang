@@ -1,0 +1,14 @@
+Prometheus() {
+    zeus x := 3 add 5 .
+    zeus y := 10 forge 2 .
+    zeus z := x add y .
+    proclaim(x) .
+    proclaim(y) .
+    proclaim(z) .
+
+    truth flag := true AND false .
+    proclaim(flag) .
+
+    zeus w := 100 divide 4 .
+    proclaim(w) .
+}

@@ -1,0 +1,12 @@
+ritual sum(zeus a, zeus b) :-> zeus {
+    back a add b .
+}
+
+ritual sum(zeus x, zeus y) :-> zeus {
+    back x minus y .
+}
+
+Prometheus() {
+    zeus z := sum(2, 3) .
+    proclaim(z) .
+}

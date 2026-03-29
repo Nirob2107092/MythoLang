@@ -1,0 +1,8 @@
+Prometheus() {
+    zeus x := 2 ** 3 .
+    proclaim(x) .
+    zeus y := 3 ** 2 .
+    proclaim(y) .
+    apollo z := 2.0 ** 10.0 .
+    proclaim(z) .
+}

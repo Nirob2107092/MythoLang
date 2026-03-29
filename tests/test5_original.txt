@@ -1,0 +1,7 @@
+Prometheus() {
+    zeus a := 0 .
+    eternal(a < 3) {
+        proclaim(a) .
+        a := a add 1 .
+    }
+}
